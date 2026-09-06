@@ -77,16 +77,18 @@ For a traced Bedrock run, create a local `.env` or export credentials for AWS an
 
 ```bash
 NOVAOPS_TOOL_MODE=mcp NOVAOPS_ANSWER_MODE=bedrock \
-  python evals/run_submission.py --trace --update-submission
+  python evals/run_submission.py --include-optional --trace --update-submission
 ```
 
 This sends synthetic evaluation prompts and retrieved synthetic NovaOps evidence to the configured AWS Bedrock and Langfuse projects. Never commit `.env`; it is ignored.
 
 ## Evaluation and observability
 
-Each measured turn creates one Langfuse trace—27 for required scope and 33 with both optional workflows. The phase and tool observations wrap live execution, and tool observations record real arguments, results, completion state, and errors. Bedrock answer and structured-extraction calls appear as generation observations. Deterministic score comments explain every result rather than reporting an unexplained aggregate pass.
+Each measured turn creates one Langfuse trace—27 for required scope and 33 with both optional workflows. Multi-turn trace inputs include prior conversation, declared evaluation criteria, and the evidence or verified operation state used by the answer. Large source documents stay in observation inputs rather than propagated metadata. The phase and tool observations wrap live execution, and tool observations record real arguments, results, completion state, and errors. Bedrock answer and structured-extraction calls appear as generation observations. Deterministic score comments explain every result rather than reporting an unexplained aggregate pass.
 
 The bounded improvement record is in `evals/IMPROVEMENT_REPORT.md`. The final trace IDs and reviewed commit are recorded in `SUBMISSION.md`.
+
+GitHub Actions runs pytest, the optional-inclusive 33-case promotion gate, the focused guardrail attacks, Compose validation, and a build of all three container images.
 
 ## Completion status
 

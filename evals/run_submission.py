@@ -136,7 +136,10 @@ def _standalone_trace(enabled: bool, name: str, request_id: str, metadata: dict)
         session_id=name,
         tags=["novaops-final-project", metadata["workflow"], name],
         trace_name=name,
-        metadata={**metadata, "request_id": request_id},
+        metadata={
+            **{key: value for key, value in metadata.items() if key != "input"},
+            "request_id": request_id,
+        },
     ):
         with client.start_as_current_observation(
             as_type="agent",
@@ -225,7 +228,12 @@ def _run_renewal_cases(workflow: dict, *, trace: bool) -> list[dict]:
         metadata = {
             "workflow": "renewal",
             "fixture_id": case["fixture_id"],
-            "input": {"trigger": workflow["trigger"], "fixture_id": case["fixture_id"]},
+            "input": {
+                "trigger": workflow["trigger"],
+                "internal_approval_event": workflow["internal_approval_event"],
+                "fixture_id": case["fixture_id"],
+                "provider_reply": case["provider_reply"],
+            },
         }
         with _standalone_trace(trace, case["id"], request_id, metadata) as (client, root):
             started = build_renewal_workflow_from_env(replies={case["fixture_id"]: case["provider_reply"]}).start(as_of)

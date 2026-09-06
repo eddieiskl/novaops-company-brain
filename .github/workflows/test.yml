@@ -18,3 +18,14 @@ jobs:
           cache: pip
       - run: python -m pip install -e '.[dev]'
       - run: python -m pytest -q
+      - run: python evals/run_submission.py --include-optional --output /tmp/submission-evaluation.json
+      - run: python evals/run_guardrail_attacks.py
+
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config --quiet
+      - run: docker compose build
+        env:
+          IMAGE_TAG: ci-${{ github.sha }}

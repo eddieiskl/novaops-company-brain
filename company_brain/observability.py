@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 import re
+from typing import Any
 
 from langfuse import get_client, propagate_attributes
 
@@ -68,6 +69,7 @@ class TracedCompanyBrainAgent:
         self.client = (client or get_client()) if enabled else None
         if enabled and require_auth and not self.authenticated():
             raise RuntimeError("Langfuse credentials are missing or rejected; refusing to create untraceable evaluation runs.")
+        self._history: dict[str, list[dict[str, str]]] = {}
 
     def authenticated(self) -> bool:
         if self.client is None:
@@ -101,6 +103,8 @@ class TracedCompanyBrainAgent:
             return result
 
         trace_name = f"{case_id or thread_id} turn {turn or '?'}"
+        prior_turns = list(self._history.get(thread_id, []))
+        evaluation_input = self._evaluation_input(message, caller, prior_turns, expectation)
         attributes = propagate_attributes(
             session_id=thread_id,
             user_id=caller.employee_id,
@@ -119,7 +123,7 @@ class TracedCompanyBrainAgent:
             with self.client.start_as_current_observation(
                 as_type="agent",
                 name=trace_name,
-                input={"message": message, "caller": asdict(caller)},
+                input=evaluation_input,
             ) as root:
                 with bind_observer(self.client, request_id):
                     result = self.agent.handle_turn(thread_id, caller, message, turn=turn, request_id=request_id)
@@ -139,6 +143,10 @@ class TracedCompanyBrainAgent:
                 result.trace_id = self.client.get_current_trace_id()
                 result.trace_url = self.client.get_trace_url(trace_id=result.trace_id)
                 root.update(
+                    input={
+                        **evaluation_input,
+                        "grounding_context": self._grounding_context(result),
+                    },
                     output={"answer": result.answer, "status": result.status},
                     metadata={
                         **result.trace_metadata(),
@@ -148,7 +156,61 @@ class TracedCompanyBrainAgent:
                         "expectation": expectation_label(expectation),
                     },
                 )
+        self._history.setdefault(thread_id, []).append({"role": "user", "content": message})
+        self._history[thread_id].append({"role": "assistant", "content": result.answer})
         return result
+
+    @staticmethod
+    def _evaluation_input(
+        message: str,
+        caller: CallerContext,
+        prior_turns: list[dict[str, str]],
+        expectation: dict | None,
+    ) -> dict[str, Any]:
+        criteria_fields = (
+            "required_facts",
+            "forbidden_facts",
+            "expected_sources",
+            "forbidden_sources",
+            "expected_status",
+        )
+        criteria = {
+            field: expectation[field]
+            for field in criteria_fields
+            if expectation and field in expectation
+        }
+        value: dict[str, Any] = {
+            "current_message": message,
+            "caller": asdict(caller),
+            "conversation_history": prior_turns,
+        }
+        if criteria:
+            value["evaluation_reference"] = criteria
+        return value
+
+    @staticmethod
+    def _grounding_context(result: AgentTurnResult) -> dict[str, Any]:
+        payload = result.payload
+        context: dict[str, Any] = {
+            "citations": result.citations,
+            "tool_sequence": result.tool_sequence,
+        }
+        retrieved = getattr(payload, "retrieved", None)
+        if retrieved:
+            context["retrieved_evidence"] = [
+                {
+                    "source": chunk.source_path,
+                    "title": chunk.title,
+                    "content": chunk.text,
+                }
+                for chunk in retrieved
+            ]
+        trace_projection = getattr(payload, "trace_projection", None)
+        if callable(trace_projection):
+            context["verified_operation_state"] = trace_projection()
+        elif isinstance(payload, (dict, list)):
+            context["verified_operation_state"] = payload
+        return context
 
     def flush(self) -> None:
         if self.client is not None:

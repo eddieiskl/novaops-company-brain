@@ -25,7 +25,9 @@ The instrumentation review also found that required evidence names were dropped 
 - Prefer explicit Finance/freeze intent over the generic word “seat.”
 - Include authoritative asset and ticket-status facts in answers.
 - Score every required turn against a readable mapped expectation and attach explanatory score comments.
+- Give automated evaluators the prior conversation, declared criteria, and grounding context while keeping large inputs out of propagated metadata.
+- Run tests, all 33 deterministic cases, guardrail attacks, Compose validation, and container builds in CI.
 
 ## Result
 
-The expanded implementation passes 66/66 tests. The required submission dry-run produces 27/27 records; the optional-inclusive run produces 33/33. Every record maps to an explicit expectation, and both runs report `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`. Refreshed live trace IDs are recorded in `SUBMISSION.md` after the final traced run.
+The expanded implementation passes 67/67 tests. The required submission dry-run produces 27/27 records; the optional-inclusive run produces 33/33. Every record maps to an explicit expectation, and both runs report `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`. Refreshed live trace IDs are recorded in `SUBMISSION.md` after the final traced run.

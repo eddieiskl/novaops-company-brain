@@ -67,6 +67,7 @@ def test_trace_contains_required_decision_and_tool_spans(monkeypatch) -> None:
 
     names = [item["name"] for item in fake.observations]
     assert names == ["M-I-01 turn 1", "classify", "scope", "execute", "retrieve_evidence", "answer"]
+    root = fake.observations[0]
     tool = next(item for item in fake.observations if item["name"] == "retrieve_evidence")
     assert tool["input"]["arguments"]["caller_employee_id"] == "E010"
     assert tool["input"]["arguments"]["required_evidence"] == [
@@ -75,9 +76,30 @@ def test_trace_contains_required_decision_and_tool_spans(monkeypatch) -> None:
     ]
     assert tool["update"]["metadata"]["completed"] is True
     assert len(tool["update"]["output"]) >= 2
+    assert root["update"]["input"]["current_message"] == "Can I use my personal laptop for work?"
+    assert root["update"]["input"]["conversation_history"] == []
+    assert root["update"]["input"]["grounding_context"]["retrieved_evidence"]
     assert result.trace_id == "trace-test-001"
     assert result.trace_metadata()["request_id"] == "M-I-01:single"
     assert result.trace_metadata()["workflow_scope"] == "maya_hr"
     assert "scope" not in result.trace_metadata()
     assert all(value == 1.0 for value in fake.scores.values())
     assert fake.flushed is True
+
+
+def test_follow_up_trace_contains_prior_conversation_for_evaluators(monkeypatch) -> None:
+    ops.reset_conn()
+    fake = FakeLangfuse()
+    monkeypatch.setattr("company_brain.observability.propagate_attributes", lambda **kwargs: nullcontext())
+    traced = TracedCompanyBrainAgent(CompanyBrainAgent(), client=fake)
+    caller = CallerContext("E004", "UG_HR")
+
+    first = traced.handle_turn("history-thread", caller, "Pull up Maya Cohen's employee record.", turn=1)
+    traced.handle_turn("history-thread", caller, "What does her offer letter require?", turn=2)
+
+    second_root = [item for item in fake.observations if item.get("as_type") == "agent"][1]
+    history = second_root["update"]["input"]["conversation_history"]
+    assert history == [
+        {"role": "user", "content": "Pull up Maya Cohen's employee record."},
+        {"role": "assistant", "content": first.answer},
+    ]
