@@ -28,4 +28,4 @@ The instrumentation review also found that required evidence names were dropped 
 
 ## Result
 
-The expanded implementation passes 65/65 tests. The required submission dry-run produces 27/27 records; the optional-inclusive run produces 33/33. Every record maps to an explicit expectation, and both runs report `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`. Refreshed live trace IDs are recorded in `SUBMISSION.md` after the final traced run.
+The expanded implementation passes 66/66 tests. The required submission dry-run produces 27/27 records; the optional-inclusive run produces 33/33. Every record maps to an explicit expectation, and both runs report `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`. Refreshed live trace IDs are recorded in `SUBMISSION.md` after the final traced run.

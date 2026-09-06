@@ -33,15 +33,20 @@ class DeterministicVendorModel:
                 "renewal_type": "automatic", "payment_terms": None, "data_sensitivity": "Internal",
                 "security_review_required": False,
             }, "conflicts": []}
-        return {"record": {
-            "vendor_name": "CipherNest", "legal_name": None, "primary_contact_name": "Nora Fischer",
-            "primary_contact_email": "nora.fischer@ciphernest.example",
-            "service_category": "Secure managed file-transfer software", "internal_owner_department": "IT",
-            "annual_cost_usd": 31200, "contract_start_date": "2026-12-01", "contract_end_date": "2027-11-30",
-            "renewal_type": "manual", "payment_terms": "Net 45 days", "data_sensitivity": "Restricted",
-            "security_review_required": None, "contact_phone": "+49 30 5557 0184",
-            "implementation_notes": "Three-week technical setup.",
-        }, "conflicts": []}
+        if "CipherNest" in prompt:
+            return {"record": {
+                "vendor_name": "CipherNest", "legal_name": None, "primary_contact_name": "Nora Fischer",
+                "primary_contact_email": "nora.fischer@ciphernest.example",
+                "service_category": "Secure managed file-transfer software", "internal_owner_department": "IT",
+                "annual_cost_usd": 31200, "contract_start_date": "2026-12-01", "contract_end_date": "2027-11-30",
+                "renewal_type": "manual", "payment_terms": "Net 45 days", "data_sensitivity": "Restricted",
+                "security_review_required": None, "contact_phone": "+49 30 5557 0184",
+                "implementation_notes": "Three-week technical setup.",
+            }, "conflicts": []}
+        raise ValueError(
+            "Deterministic vendor mode supports only the supplied HelioDesk, RoutePilot, and CipherNest fixtures. "
+            "Set NOVAOPS_ANSWER_MODE=bedrock for arbitrary documents."
+        )
 
 
 def build_vendor_extractor_from_env() -> VendorExtractor:

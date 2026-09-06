@@ -63,3 +63,18 @@ def test_vendor_endpoint_returns_locally_validated_record(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert response.json()["result"]["missing_required_fields"] == []
+
+
+def test_vendor_endpoint_rejects_unknown_offline_fixture(monkeypatch) -> None:
+    client = _client(monkeypatch)
+    response = client.post(
+        "/v1/vendor/extract",
+        json={
+            "source_id": "unknown_vendor",
+            "source_type": "email_chain",
+            "document": "Vendor Acme Cloud has an annual cost of USD 12,000.",
+        },
+    )
+
+    assert response.status_code == 422
+    assert "NOVAOPS_ANSWER_MODE=bedrock" in response.json()["detail"]
