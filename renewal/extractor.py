@@ -111,12 +111,13 @@ class ProviderDecisionExtractor:
                     continue
                 digits = "".join(character for character in value if character.isdigit())
                 values[integer_field] = int(digits) if digits else None
-        explicit = ProviderDecisionExtractor._explicit_commercial_values(provider_reply)
-        for field, value in explicit.items():
-            if values[field] is None:
-                values[field] = value
-        missing = [field for field, value in values.items() if value is None]
+        # Strongly labelled source literals outrank model-proposed values.
+        values.update(ProviderDecisionExtractor._explicit_commercial_values(provider_reply))
         conditions = [str(item).strip() for item in raw.get("conditions", []) if str(item).strip()]
+        if decision == "approved" and not ProviderDecisionExtractor._has_unconditional_approval(provider_reply):
+            decision = "ambiguous"
+            conditions.append("Source lacks explicit unconditional approval language")
+        missing = [field for field, value in values.items() if value is None]
         return {
             "fixture_id": fixture_id,
             "message_id": message_id or str(raw.get("message_id") or f"<{fixture_id}@provider.invalid>"),
@@ -153,6 +154,20 @@ class ProviderDecisionExtractor:
                 value = int(value.replace(",", ""))
             found[field] = value
         return found
+
+    @staticmethod
+    def _has_unconditional_approval(provider_reply: str) -> bool:
+        folded = " ".join(provider_reply.casefold().split())
+        final = "final confirmation" in folded or "final approval" in folded
+        unconditional = any(
+            phrase in folded
+            for phrase in (
+                "approved without further conditions",
+                "approved with no conditions",
+                "unconditionally approved",
+            )
+        )
+        return final and unconditional
 
     @staticmethod
     def _prompt(fixture_id: str, provider_reply: str) -> str:

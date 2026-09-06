@@ -21,7 +21,8 @@ class FakeProviderModel:
         self.calls.append(prompt)
         if "webex_renewal_approved" in prompt:
             return {
-                "contract_id": "C001",
+                # Source literals must outrank a hallucinated model identifier.
+                "contract_id": "C999",
                 "decision": "approved",
                 # Exercise source-grounded recovery when the model emits nulls.
                 "confirmation_id": None,
@@ -142,6 +143,7 @@ def test_wrong_approver_and_mismatched_contract_fail_closed() -> None:
             return result
 
     mismatched = build_renewal_workflow(extractor=ProviderDecisionExtractor(model=MismatchModel()))
-    result = mismatched.handle_provider_reply(started.run_id, "webex_renewal_approved", _reply("webex_renewal_approved"))
+    mismatched_source = _reply("webex_renewal_approved").replace("C001", "C999")
+    result = mismatched.handle_provider_reply(started.run_id, "webex_renewal_approved", mismatched_source)
     assert result.status == "needs_human"
     assert result.applied is False
