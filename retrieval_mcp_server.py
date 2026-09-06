@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import sys
 
 ROOT = Path(__file__).resolve().parent
@@ -168,7 +169,9 @@ def resume_access_handoff(handoff_id: str) -> dict:
 def build_server():
     from mcp.server.fastmcp import FastMCP
 
-    mcp = FastMCP("novaops-company-brain", host="127.0.0.1", port=9880)
+    host = os.getenv("NOVAOPS_MCP_HOST", "127.0.0.1")
+    port = int(os.getenv("NOVAOPS_MCP_PORT", "9880"))
+    mcp = FastMCP("novaops-company-brain", host=host, port=port)
     for tool in (
         list_evidence_collections,
         retrieve_evidence,
@@ -193,5 +196,8 @@ def build_server():
 
 if __name__ == "__main__":
     server = build_server()
-    print("NovaOps company-brain MCP server -> http://127.0.0.1:9880/mcp")
+    print(
+        "NovaOps company-brain MCP server -> "
+        f"http://{os.getenv('NOVAOPS_MCP_HOST', '127.0.0.1')}:{os.getenv('NOVAOPS_MCP_PORT', '9880')}/mcp"
+    )
     server.run(transport="streamable-http")

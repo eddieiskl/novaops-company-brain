@@ -38,6 +38,20 @@ def test_required_submission_dry_run_has_complete_local_trace_index() -> None:
     }
 
 
+def test_optional_submission_dry_run_produces_all_33_records() -> None:
+    result = run(trace=False, include_optional=True)
+
+    assert result["summary"]["produced"] == 33
+    assert result["summary"]["expected_required_traces"] == 33
+    assert result["summary"]["all_deterministic_checks_pass"] is True
+    assert {(row["item"], row["status"]) for row in result["records"]} >= {
+        ("V-I-01", "completed"),
+        ("R-I-01", "completed"),
+        ("R-I-02", "needs_human"),
+        ("R-I-03", "needs_human"),
+    }
+
+
 def test_trace_index_writer_only_fills_matching_submission_cells(tmp_path) -> None:
     submission = tmp_path / "SUBMISSION.md"
     submission.write_text(

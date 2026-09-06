@@ -64,6 +64,61 @@ def _migrate(db: sqlite3.Connection) -> None:
             entity_id TEXT NOT NULL,
             created_at TEXT NOT NULL
         );
+        CREATE TABLE IF NOT EXISTS renewal_runs (
+            run_id TEXT PRIMARY KEY,
+            contract_id TEXT NOT NULL,
+            subscription_id TEXT NOT NULL,
+            approver_id TEXT NOT NULL,
+            stage TEXT NOT NULL,
+            status TEXT NOT NULL,
+            as_of_date TEXT NOT NULL,
+            urgent INTEGER NOT NULL,
+            internal_event_id TEXT,
+            internal_decision TEXT,
+            internal_actor_id TEXT,
+            provider_fixture_id TEXT,
+            provider_decision_json TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS renewal_outbox (
+            message_id TEXT PRIMARY KEY,
+            idempotency_key TEXT NOT NULL UNIQUE,
+            run_id TEXT NOT NULL,
+            channel TEXT NOT NULL,
+            recipient TEXT NOT NULL,
+            kind TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            body TEXT NOT NULL,
+            delivery_status TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS renewal_processed_events (
+            event_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            processed_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS renewal_applied_updates (
+            update_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL UNIQUE,
+            contract_id TEXT NOT NULL,
+            subscription_id TEXT NOT NULL,
+            confirmation_id TEXT NOT NULL,
+            new_seat_limit INTEGER NOT NULL,
+            annual_cost_usd INTEGER NOT NULL,
+            term_start_date TEXT NOT NULL,
+            term_end_date TEXT NOT NULL,
+            applied_at TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS renewal_notifications (
+            notification_id TEXT PRIMARY KEY,
+            run_id TEXT NOT NULL,
+            employee_id TEXT NOT NULL,
+            message_id TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            UNIQUE(run_id, employee_id)
+        );
         """
     )
     db.commit()
@@ -95,6 +150,11 @@ def reset_conn(*, reseed: bool = True) -> None:
         try:
             schema, seed = _schema_seed()
             db.executescript(
+                "DROP TABLE IF EXISTS renewal_notifications; "
+                "DROP TABLE IF EXISTS renewal_applied_updates; "
+                "DROP TABLE IF EXISTS renewal_processed_events; "
+                "DROP TABLE IF EXISTS renewal_outbox; "
+                "DROP TABLE IF EXISTS renewal_runs; "
                 "DROP TABLE IF EXISTS workflow_handoffs; "
                 "DROP TABLE IF EXISTS idempotency_records;"
             )

@@ -13,8 +13,12 @@ dependencies = [
   "httpx>=0.27,<1",
   "langfuse>=4,<5",
   "mcp>=1.20,<2",
+  "fastapi>=0.115,<1",
+  "jsonschema>=4.20,<5",
+  "pydantic>=2.10,<3",
   "python-dotenv>=1,<2",
   "PyYAML>=6,<7",
+  "uvicorn>=0.34,<1",
 ]
 
 [project.optional-dependencies]
@@ -26,7 +30,10 @@ opensearch = ["opensearch-py>=2,<4"]
 py-modules = ["dev_opensearch_server", "model_client", "retrieval_mcp_server"]
 
 [tool.setuptools.packages.find]
-include = ["company_brain*", "maya*", "webex*"]
+include = ["company_brain*", "maya*", "renewal*", "service*", "vendor*", "webex*"]
+
+[project.scripts]
+novaops-renewal = "renewal.worker:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

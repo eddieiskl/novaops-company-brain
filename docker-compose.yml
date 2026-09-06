@@ -1,0 +1,49 @@
+services:
+  mcp:
+    image: novaops-company-brain-mcp:${IMAGE_TAG:-dev}
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    environment:
+      NOVAOPS_DB_PATH: /data/novaops.sqlite3
+      NOVAOPS_MCP_HOST: 0.0.0.0
+    volumes:
+      - novaops_state:/data
+    ports:
+      - "9880:9880"
+
+  agent-api:
+    image: novaops-company-brain-agent:${IMAGE_TAG:-dev}
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    environment:
+      NOVAOPS_DB_PATH: /data/novaops.sqlite3
+      NOVAOPS_TOOL_MODE: mcp
+      NOVAOPS_MCP_URL: http://mcp:9880/mcp
+      NOVAOPS_ANSWER_MODE: deterministic
+    volumes:
+      - novaops_state:/data
+    ports:
+      - "18080:8080"
+    depends_on:
+      mcp:
+        condition: service_healthy
+
+  renewal-worker:
+    image: novaops-company-brain-renewal:${IMAGE_TAG:-dev}
+    build:
+      context: .
+      dockerfile: Dockerfile.renewal
+    environment:
+      NOVAOPS_DB_PATH: /data/novaops.sqlite3
+      NOVAOPS_ANSWER_MODE: deterministic
+      NOVAOPS_AS_OF: "2026-07-01"
+    volumes:
+      - novaops_state:/data
+    depends_on:
+      mcp:
+        condition: service_healthy
+
+volumes:
+  novaops_state:

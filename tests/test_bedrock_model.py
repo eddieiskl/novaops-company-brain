@@ -18,6 +18,15 @@ class FakeBedrockRuntime:
 
     def converse(self, **kwargs) -> dict:
         self.requests.append(kwargs)
+        if "toolConfig" in kwargs:
+            tool_name = kwargs["toolConfig"]["toolChoice"]["tool"]["name"]
+            return {
+                "output": {
+                    "message": {
+                        "content": [{"toolUse": {"name": tool_name, "input": {"field": "value"}}}]
+                    }
+                }
+            }
         return {"output": {"message": {"content": [{"text": "Grounded answer [source]."}]}}}
 
 
@@ -41,3 +50,17 @@ def test_bedrock_answer_port_keeps_provider_call_out_of_agent_graph() -> None:
 
     assert answer == "Grounded answer [source]."
     assert "never claim an action happened" in client.requests[0]["system"][0]["text"]
+
+
+def test_model_boundary_forces_structured_tool_output() -> None:
+    client = FakeBedrockRuntime()
+    model = BedrockModelClient(client=client)
+
+    result = model.extract_with_tool(
+        "Extract this",
+        tool_name="submit_record",
+        input_schema={"type": "object", "properties": {"field": {"type": "string"}}},
+    )
+
+    assert result == {"field": "value"}
+    assert client.requests[0]["toolConfig"]["toolChoice"] == {"tool": {"name": "submit_record"}}

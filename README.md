@@ -1,6 +1,6 @@
 # NovaOps Company Brain
 
-NovaOps Company Brain is a permission-sensitive operational agent with one public entry point and two required workflows: Maya for HR/onboarding questions and Webex for IT access operations. It combines cited document retrieval, SQLite-backed operational records, an MCP tool boundary, Bedrock Nova 2 Lite answers, durable approval gates, and Langfuse evaluation traces.
+NovaOps Company Brain is a permission-sensitive operational system with four workflows: Maya for HR/onboarding, Webex for IT access operations, standalone Vendor CRM extraction, and an offline Renewal process. It combines cited document retrieval, SQLite-backed operational records, an MCP tool boundary, Bedrock Nova 2 Lite structured output and answers, durable approval gates, Langfuse evaluation traces, and containerized entry points.
 
 The repository is self-contained. Its company records and documents are synthetic and live under `novaops-enterprise-agent-dataset/`.
 
@@ -19,10 +19,14 @@ The repository is self-contained. Its company records and documents are syntheti
 | Missing employee-to-seat data is reported rather than inferred | `maya/ops.py`, `tests/test_company_brain_agent.py` |
 | Binding golden facts, sources, permissions, and tool-use rules are scored | `evals/binding_checks.py`, `tests/test_submission_runner.py` |
 | All 27 required measured turns have a trace index | `SUBMISSION.md`, `evals/run_submission.py` |
+| Vendor extraction uses one forced-tool call and validates the supplied schema locally | `vendor/extractor.py`, `tests/test_vendor_extractor.py` |
+| Renewal pauses, survives restart, and replays every event exactly once | `renewal/`, `tests/test_renewal_workflow.py` |
+| Adversarial permission, approval, and provider proposals fail closed | `evals/run_guardrail_attacks.py`, `tests/test_guardrail_attacks.py` |
+| API, MCP, and worker ship as separate non-root containers | `Dockerfile.*`, `docker-compose.yml`, `docs/deployment.md` |
 
 ## Architecture
 
-`CompanyBrainAgent` owns routing and the shared result contract. Maya and Webex remain focused internal workflows. All retrieval and operational calls cross a `ToolGateway`, which can run in-process for deterministic tests or against the FastMCP server. SQLite is the source of durable operational and approval state; the default database is `.state/novaops.sqlite3` and can be overridden with `NOVAOPS_DB_PATH`.
+`CompanyBrainAgent` owns routing and the shared conversational result contract. Maya and Webex remain focused internal scopes. Vendor is a synchronous document-in/record-out function; Renewal begins from a schedule and resumes on persisted inbound events. All conversational retrieval and operational calls cross a `ToolGateway`, which can run in-process for deterministic tests or against the FastMCP server. SQLite is the source of durable operational, approval, renewal, outbox, and idempotency state; the default database is `.state/novaops.sqlite3` and can be overridden with `NOVAOPS_DB_PATH`.
 
 The dataset deliberately has no employee-to-Webex-seat relationship. Role entitlement is not proof of assignment, so `inspect_software_seat_assignments` returns that limitation explicitly.
 
@@ -47,6 +51,8 @@ python evals/run_maya_s2.py
 python evals/run_maya_s9.py
 python evals/run_webex_s8.py
 python evals/run_submission.py
+python evals/run_submission.py --include-optional
+python evals/run_guardrail_attacks.py
 ```
 
 The submission runner maps every required measured input to binding expectations from `spec/GOLDEN-DATASETS.json` or an explicit Webex check. It exits non-zero when a required fact/source, permission rule, tool-use rule, or generic safety invariant fails.
@@ -78,7 +84,7 @@ This sends synthetic evaluation prompts and retrieved synthetic NovaOps evidence
 
 ## Evaluation and observability
 
-Each measured turn creates one Langfuse agent trace. The phase and tool observations wrap live execution, and tool observations record real arguments, results, completion state, and errors. Bedrock calls appear as generation observations. Deterministic score comments explain every binding result rather than reporting an unexplained aggregate pass.
+Each measured turn creates one Langfuse trace—27 for required scope and 33 with both optional workflows. The phase and tool observations wrap live execution, and tool observations record real arguments, results, completion state, and errors. Bedrock answer and structured-extraction calls appear as generation observations. Deterministic score comments explain every result rather than reporting an unexplained aggregate pass.
 
 The bounded improvement record is in `evals/IMPROVEMENT_REPORT.md`. The final trace IDs and reviewed commit are recorded in `SUBMISSION.md`.
 
@@ -90,9 +96,10 @@ The bounded improvement record is in `evals/IMPROVEMENT_REPORT.md`. The final tr
 | Required Webex workflow | Complete |
 | Lesson 11 observability and evaluation | Complete; instructor membership remains an external submission step |
 | Lesson 12 eval-loop engineering | Complete for the required scope; before/after gate is documented |
-| Lesson 13 attack/guardrail extension | Not claimed as a separate optional stage; required permission and write-boundary controls are tested |
-| Lesson 14 packaging/deployment | Not completed; no deployment claim is made |
-| Vendor and Renewal workflows | Optional, not attempted |
+| Vendor workflow | Complete; three schema-valid 0/1/2-gap extractions |
+| Renewal workflow | Complete; three restart-safe, replay-safe outcomes |
+| Lesson 13 attack/guardrail extension | Complete as an explicit focused suite, although the supplied project has no measured security tier |
+| Lesson 14 packaging/deployment | Packaging and local Compose deployment complete; cloud provisioning awaits explicit cost authorization |
 
 ## Security and data handling
 
@@ -103,3 +110,14 @@ The bounded improvement record is in `evals/IMPROVEMENT_REPORT.md`. The final tr
 - Answers distinguish observed facts, actions taken, recommendations, and blockers.
 
 See `SUBMISSION.md` for the deliverable index and `spec/PROJECT-DESCRIPTION.md` for the supplied project brief.
+
+## Containers
+
+```bash
+IMAGE_TAG="$(git rev-parse HEAD)" docker compose build
+IMAGE_TAG="$(git rev-parse HEAD)" docker compose up -d
+curl http://127.0.0.1:18080/health/live
+curl http://127.0.0.1:18080/health/ready
+```
+
+See `docs/deployment.md` for entry points, durability, credentials, and cloud-deployment boundaries.

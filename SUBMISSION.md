@@ -28,14 +28,14 @@ and it is how every trace gets found.
 | --------------------------- | ------ | ----- |
 | 1 — Maya · HR and onboarding | yes | S2 and S9 sessions, cited retrieval, read-only handoff |
 | 2 — Webex · IT operations    | yes | durable approval gate, reuse of T001/AR001, honest seat limitation |
-| 3 — Vendor · CRM extraction  | no | optional workflow not attempted |
-| 4 — Renewal · contract renewal | no | optional workflow not attempted |
+| 3 — Vendor · CRM extraction  | yes | one forced-tool call, schema validation, 0/1/2 missing fields |
+| 4 — Renewal · contract renewal | yes | scheduled durable state, restart/replay safety, strict provider write gate |
 
 | Optional stage | Done | Evidence |
 | ------------------------------- | -------- | -------- |
 | Lesson 12 — loop engineering     | yes | bounded binding-score improvement loop in `evals/IMPROVEMENT_REPORT.md` |
-| Lesson 13 — attack and guardrail extension | no | not claimed separately; required permission/write controls are tested |
-| Lesson 14 — packaging and deploy | no | dependency manifest and CI added; container/cloud stage not attempted |
+| Lesson 13 — attack and guardrail extension | yes | focused suite in `evals/run_guardrail_attacks.py` |
+| Lesson 14 — packaging and deploy | partial | three non-root images and Compose verified locally; cloud resources not provisioned |
 
 ## 4. Durable-behavior evidence
 
@@ -47,7 +47,7 @@ that proves each — one line, or "not attempted".
 | Replaying a request creates no second ticket or access request | `tests/test_company_brain_agent.py`, `tests/test_access_handoff_resume.py` |
 | A pending approval survives the process being killed and restarted | `tests/test_access_handoff_resume.py::test_new_access_request_pauses_survives_restart_and_resumes_once` |
 | The write gate releases only against a recorded approval | `webex/write_gate.py`, `tests/test_write_gate.py` |
-| *Renewal (optional): every event replayed twice leaves one update and one notification per recipient* | not attempted |
+| *Renewal: every event replayed twice leaves one update and one notification per recipient* | `tests/test_renewal_workflow.py::test_approved_renewal_survives_restarts_and_replays_exactly_once` |
 
 ## 5. Trace index
 
@@ -113,9 +113,9 @@ blank if you did not run it.
 
 ## 6. Anything I should know
 
-The required Maya and Webex scope is complete; Vendor, Renewal, and deployment were deliberately
-left out so the required permission, approval, idempotency, and observability paths could be
-finished and evidenced. Lesson 12's bounded improvement loop is documented and the project now
-has a standalone dependency manifest plus CI, but no Lesson 14 deployment claim is made. The live
-evaluation used Bedrock Nova 2 Lite through the MCP-backed core; deterministic answer fallbacks
-remain available for repeatable local safety tests.
+All four workflows are implemented. Vendor produces schema-validated extractions; Renewal persists
+its schedule, approval, provider proposal, outbox, update, audit, and notification state and is
+replay-safe across restarts. Lesson 12 and the focused Lesson 13 extension are documented. Lesson 14
+packaging was built and exercised locally across the API, MCP, and worker images; no cloud resources
+were provisioned without explicit cost authorization. Live evaluations use Bedrock Nova 2 Lite;
+deterministic fallbacks remain available for repeatable local safety tests.

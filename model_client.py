@@ -51,3 +51,44 @@ class BedrockModelClient:
         if not text:
             raise RuntimeError("Bedrock returned no text content.")
         return text
+
+    def extract_with_tool(
+        self,
+        prompt: str,
+        *,
+        tool_name: str,
+        input_schema: dict[str, Any],
+        system: str = "",
+    ) -> dict[str, Any]:
+        """Make one forced-tool Converse call and return its structured input."""
+
+        request: dict[str, Any] = {
+            "modelId": self.model_id,
+            "messages": [{"role": "user", "content": [{"text": prompt}]}],
+            "inferenceConfig": {
+                "maxTokens": self.max_tokens,
+                "temperature": self.temperature,
+                "topP": 0.9,
+            },
+            "toolConfig": {
+                "tools": [
+                    {
+                        "toolSpec": {
+                            "name": tool_name,
+                            "description": "Submit the validated structured extraction.",
+                            "inputSchema": {"json": input_schema},
+                        }
+                    }
+                ],
+                "toolChoice": {"tool": {"name": tool_name}},
+            },
+        }
+        if system:
+            request["system"] = [{"text": system}]
+        response = self.client.converse(**request)
+        blocks = response.get("output", {}).get("message", {}).get("content", [])
+        for block in blocks:
+            tool_use = block.get("toolUse") if isinstance(block, dict) else None
+            if tool_use and tool_use.get("name") == tool_name and isinstance(tool_use.get("input"), dict):
+                return tool_use["input"]
+        raise RuntimeError(f"Bedrock returned no forced {tool_name!r} tool input.")

@@ -1,10 +1,10 @@
-# Required-scope improvement loop
+# Improvement loop
 
 Date: 2026-09-06
 
 ## Gate
 
-The promotion gate is the deterministic 27-turn submission dry-run plus the full pytest suite. The dry-run applies the binding fields from `spec/GOLDEN-DATASETS.json`: required and forbidden facts, required and forbidden sources, forbidden tools, and whether a turn needs model-visible tools. Supplemental deterministic checks cover the two required Webex one-shots that have no exact golden entry.
+The required-scope promotion gate is the deterministic 27-turn submission dry-run plus the full pytest suite. The expanded gate runs 33 turns when both optional workflows are included. The dry-run applies the binding fields from `spec/GOLDEN-DATASETS.json`: required and forbidden facts, required and forbidden sources, forbidden tools, and whether a turn needs model-visible tools. Supplemental deterministic checks cover the two required Webex one-shots that have no exact golden entry.
 
 ## Baseline
 
@@ -28,4 +28,4 @@ The instrumentation review also found that required evidence names were dropped 
 
 ## Result
 
-The accepted implementation passes 50/50 tests. The required submission dry-run produces 27/27 records, maps 27/27 to explicit expectations, and reports both `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`. Refreshed live trace IDs are recorded in `SUBMISSION.md` after the final traced run.
+The expanded implementation passes 64/64 tests. The required submission dry-run produces 27/27 records; the optional-inclusive run produces 33/33. Every record maps to an explicit expectation, and both runs report `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`. Refreshed live trace IDs are recorded in `SUBMISSION.md` after the final traced run.
