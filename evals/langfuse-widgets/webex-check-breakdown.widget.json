@@ -1,0 +1,40 @@
+{
+  "$langfuseWidget": true,
+  "version": 1,
+  "name": "Webex - Deterministic Check Breakdown",
+  "description": "Average deterministic Webex check scores grouped by check name.",
+  "view": "scores-numeric",
+  "dimensions": [
+    {
+      "field": "name"
+    }
+  ],
+  "metrics": [
+    {
+      "measure": "value",
+      "agg": "avg"
+    }
+  ],
+  "filters": [
+    {
+      "column": "name",
+      "operator": "any of",
+      "type": "stringOptions",
+      "value": [
+        "webex_tool_selection",
+        "webex_forbidden_avoided",
+        "webex_fact_recall",
+        "webex_decision_status",
+        "webex_reuse_existing_ticket",
+        "webex_reuse_existing_request",
+        "webex_approval_persistence",
+        "webex_pending_approvals",
+        "webex_no_grant_claim"
+      ]
+    }
+  ],
+  "chartType": "VERTICAL_BAR",
+  "chartConfig": {
+    "type": "VERTICAL_BAR"
+  }
+}

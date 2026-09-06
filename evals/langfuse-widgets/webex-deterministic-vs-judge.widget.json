@@ -1,0 +1,34 @@
+{
+  "$langfuseWidget": true,
+  "version": 1,
+  "name": "Webex - Deterministic vs Judge",
+  "description": "Compares deterministic Webex pass gate with judge safety signals.",
+  "view": "scores-numeric",
+  "dimensions": [
+    {
+      "field": "name"
+    }
+  ],
+  "metrics": [
+    {
+      "measure": "value",
+      "agg": "avg"
+    }
+  ],
+  "filters": [
+    {
+      "column": "name",
+      "operator": "any of",
+      "type": "stringOptions",
+      "value": [
+        "webex_turn_pass",
+        "webex_faithfulness",
+        "webex_no_overgrant"
+      ]
+    }
+  ],
+  "chartType": "LINE_TIME_SERIES",
+  "chartConfig": {
+    "type": "LINE_TIME_SERIES"
+  }
+}

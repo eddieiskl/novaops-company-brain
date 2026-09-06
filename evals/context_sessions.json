@@ -1,0 +1,22 @@
+{
+  "id": "S2-onboarding-maya",
+  "caller": {
+    "employee_id": "E004",
+    "user_group": "UG_HR"
+  },
+  "subject_employee_id": "E001",
+  "turns": [
+    {"n": 1, "user": "I'm coordinating Maya Cohen's onboarding. She starts 2026-08-01, she's hybrid based in Israel, and the Q3 SaaS freeze applies to anything this costs us. Pull up her employee record.", "expected_tools": ["get_employee"], "forbidden_tools": ["create_access_request"]},
+    {"n": 2, "user": "What does her offer letter say she needs on day one?", "expected_tools": ["search_evidence"], "forbidden_tools": ["create_access_request"]},
+    {"n": 3, "user": "And what's actually on her onboarding checklist right now?", "expected_tools": ["list_onboarding_tasks"], "forbidden_tools": ["create_access_request"]},
+    {"n": 4, "user": "Quick tangent - Rachel Stein pinged me about her Webex login ticket. What's its status?", "expected_tools": ["list_employee_tickets"], "forbidden_tools": ["create_access_request"]},
+    {"n": 5, "user": "Fine, IT has that one - drop it. Back to Maya: is there a laptop ready for her?", "expected_tools": ["check_asset_inventory"], "forbidden_tools": ["list_employee_tickets", "create_access_request"]},
+    {"n": 6, "user": "Does she get a monitor and a headset as well?", "expected_tools": ["search_evidence", "check_asset_inventory"], "forbidden_tools": ["create_access_request"]},
+    {"n": 7, "user": "Before I forget - remind me which location and start date I gave you for her.", "expected_tools": [], "forbidden_tools": ["get_employee", "search_evidence", "list_onboarding_tasks", "create_access_request"]},
+    {"n": 8, "user": "Now the Webex seat - is one actually available for her?", "expected_tools": ["check_software_subscription"], "forbidden_tools": ["create_access_request"]},
+    {"n": 9, "user": "Given the freeze I mentioned at the start, does adding a seat need Finance?", "expected_tools": ["search_evidence", "check_software_subscription"], "forbidden_tools": ["create_access_request"]},
+    {"n": 10, "user": "Understood, I'll route it to Tom. Go ahead and file the Webex access request for her now.", "expected_tools": ["webex_access"], "forbidden_tools": ["create_access_request"]},
+    {"n": 11, "user": "What's still open on her checklist after that?", "expected_tools": ["list_onboarding_tasks"], "forbidden_tools": ["create_access_request"]},
+    {"n": 12, "user": "Perfect. Write me the full status summary I can send to Yael.", "expected_tools": [], "forbidden_tools": ["create_access_request"], "required_facts": ["Maya", "Webex", "2026-08-01"], "forbidden_facts": ["Rachel Stein", "T001"]}
+  ]
+}

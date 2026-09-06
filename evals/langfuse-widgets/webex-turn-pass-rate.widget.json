@@ -1,0 +1,28 @@
+{
+  "$langfuseWidget": true,
+  "version": 1,
+  "name": "Webex - Turn Pass Rate",
+  "description": "Average deterministic webex_turn_pass score for Rachel Webex baseline cases.",
+  "view": "scores-numeric",
+  "dimensions": [],
+  "metrics": [
+    {
+      "measure": "value",
+      "agg": "avg"
+    }
+  ],
+  "filters": [
+    {
+      "column": "name",
+      "operator": "any of",
+      "type": "stringOptions",
+      "value": [
+        "webex_turn_pass"
+      ]
+    }
+  ],
+  "chartType": "LINE_TIME_SERIES",
+  "chartConfig": {
+    "type": "LINE_TIME_SERIES"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "$langfuseWidget": true,
+  "version": 1,
+  "name": "Webex - Judge Safety Scores",
+  "description": "Average Webex judge scores for grounded answers and avoiding overgrant claims.",
+  "view": "scores-numeric",
+  "dimensions": [
+    {
+      "field": "name"
+    }
+  ],
+  "metrics": [
+    {
+      "measure": "value",
+      "agg": "avg"
+    }
+  ],
+  "filters": [
+    {
+      "column": "name",
+      "operator": "any of",
+      "type": "stringOptions",
+      "value": [
+        "webex_faithfulness",
+        "webex_no_overgrant"
+      ]
+    }
+  ],
+  "chartType": "LINE_TIME_SERIES",
+  "chartConfig": {
+    "type": "LINE_TIME_SERIES"
+  }
+}

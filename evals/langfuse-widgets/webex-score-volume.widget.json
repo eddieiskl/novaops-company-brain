@@ -1,0 +1,44 @@
+{
+  "$langfuseWidget": true,
+  "version": 1,
+  "name": "Webex - Score Volume",
+  "description": "Counts Webex deterministic and judge score records by score name.",
+  "view": "scores-numeric",
+  "dimensions": [
+    {
+      "field": "name"
+    }
+  ],
+  "metrics": [
+    {
+      "measure": "count",
+      "agg": "count"
+    }
+  ],
+  "filters": [
+    {
+      "column": "name",
+      "operator": "any of",
+      "type": "stringOptions",
+      "value": [
+        "webex_turn_pass",
+        "webex_turn_score",
+        "webex_faithfulness",
+        "webex_no_overgrant",
+        "webex_tool_selection",
+        "webex_forbidden_avoided",
+        "webex_fact_recall",
+        "webex_decision_status",
+        "webex_reuse_existing_ticket",
+        "webex_reuse_existing_request",
+        "webex_approval_persistence",
+        "webex_pending_approvals",
+        "webex_no_grant_claim"
+      ]
+    }
+  ],
+  "chartType": "VERTICAL_BAR",
+  "chartConfig": {
+    "type": "VERTICAL_BAR"
+  }
+}
