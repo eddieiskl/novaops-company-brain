@@ -30,4 +30,6 @@ The instrumentation review also found that required evidence names were dropped 
 
 ## Result
 
-The expanded implementation passes 67/67 tests. The required submission dry-run produces 27/27 records; the optional-inclusive run produces 33/33. Every record maps to an explicit expectation, and both runs report `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`. Refreshed live trace IDs are recorded in `SUBMISSION.md` after the final traced run.
+The expanded implementation passes 67/67 tests. The required submission dry-run produces 27/27 records; the optional-inclusive run produces 33/33. Every record maps to an explicit expectation, and both runs report `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`.
+
+The polished live read-back found 33 traces, 26 Nova generations, 42 tool observations, 243 deterministic API scores with no non-unit result, and no error observations. All 27 conversational traces include grounding context, all 18 session follow-ups include prior conversation, all six optional traces include their source document or provider reply, and no trace copies large input into propagated metadata. The separate project-level LLM evaluator produced 99 advisory scores with a `0.897` mean; these are intentionally reported separately from the binding promotion gate. Refreshed live trace IDs are recorded in `SUBMISSION.md`.
