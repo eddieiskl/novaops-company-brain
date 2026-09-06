@@ -99,7 +99,15 @@ class ProviderDecisionExtractor:
         values = {field: raw.get(field) for field in COMPLETE_FIELDS}
         for integer_field in ("new_seat_limit", "annual_cost_usd"):
             value = values[integer_field]
-            if isinstance(value, str):
+            if isinstance(value, bool):
+                values[integer_field] = None
+            elif isinstance(value, (int, float)):
+                values[integer_field] = int(value) if value >= 0 and float(value).is_integer() else None
+            elif isinstance(value, str):
+                stripped = value.strip()
+                if stripped.startswith("-") or stripped.casefold() in {"", "null", "none", "unknown", "n/a"}:
+                    values[integer_field] = None
+                    continue
                 digits = "".join(character for character in value if character.isdigit())
                 values[integer_field] = int(digits) if digits else None
         missing = [field for field, value in values.items() if value is None]

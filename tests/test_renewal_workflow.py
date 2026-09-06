@@ -46,7 +46,8 @@ class FakeProviderModel:
             "decision": "ambiguous",
             "confirmation_id": None,
             "new_seat_limit": 50,
-            "annual_cost_usd": None,
+            # Bedrock can emit numeric sentinels for absent optional values.
+            "annual_cost_usd": -1,
             "term_start_date": None,
             "term_end_date": None,
             "conditions": ["Billing review and final confirmation still pending"],
