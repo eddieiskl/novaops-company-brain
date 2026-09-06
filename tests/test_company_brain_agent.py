@@ -11,6 +11,11 @@ from company_brain import CompanyBrainAgent
 from maya import CallerContext, ops
 
 
+class IncompletePromotionAnswerPort:
+    async def answer(self, prompt: str) -> str:
+        return "Promotion requires six months in role, followed by review."
+
+
 def test_one_entry_point_routes_maya_and_webex_scopes() -> None:
     ops.reset_conn()
     agent = CompanyBrainAgent()
@@ -98,3 +103,17 @@ def test_unknown_request_does_not_default_to_mayas_record() -> None:
     assert result.tool_sequence == []
     assert "clearer current request" in result.answer
     assert "E001" not in result.answer
+
+
+def test_model_rewrite_falls_back_if_it_drops_binding_policy_dates() -> None:
+    ops.reset_conn()
+    result = CompanyBrainAgent(answer_port=IncompletePromotionAnswerPort()).handle_turn(
+        "promotion-contract",
+        CallerContext("E001", "UG_REGULAR"),
+        "How do I get promoted?",
+    )
+
+    assert "six months" in result.answer
+    assert "April 1" in result.answer
+    assert "October 1" in result.answer
+    assert "model_answer_contract_fallback:promotion_path" in result.payload.errors

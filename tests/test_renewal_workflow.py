@@ -23,11 +23,12 @@ class FakeProviderModel:
             return {
                 "contract_id": "C001",
                 "decision": "approved",
-                "confirmation_id": "RX-WEBEX-2026-8841",
+                # Exercise source-grounded recovery when the model emits nulls.
+                "confirmation_id": None,
                 "new_seat_limit": 50,
                 "annual_cost_usd": 22000,
-                "term_start_date": "2026-07-21",
-                "term_end_date": "2027-07-20",
+                "term_start_date": None,
+                "term_end_date": None,
                 "conditions": [],
             }
         if "webex_renewal_conditional" in prompt:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 import json
 from pathlib import Path
+import re
 from typing import Any, Protocol
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -110,6 +111,10 @@ class ProviderDecisionExtractor:
                     continue
                 digits = "".join(character for character in value if character.isdigit())
                 values[integer_field] = int(digits) if digits else None
+        explicit = ProviderDecisionExtractor._explicit_commercial_values(provider_reply)
+        for field, value in explicit.items():
+            if values[field] is None:
+                values[field] = value
         missing = [field for field, value in values.items() if value is None]
         conditions = [str(item).strip() for item in raw.get("conditions", []) if str(item).strip()]
         return {
@@ -120,6 +125,34 @@ class ProviderDecisionExtractor:
             "conditions": conditions,
             "missing_fields": missing,
         }
+
+    @staticmethod
+    def _explicit_commercial_values(provider_reply: str) -> dict[str, Any]:
+        """Recover literal commercial values when a model emits null sentinels.
+
+        This does not infer approval. It only copies strongly labelled values from
+        the source email; the independent write gate still requires an approved,
+        unconditional, exact match to the pending contract.
+        """
+
+        patterns = {
+            "contract_id": r"\bcontract\s+(C\d+)\b",
+            "confirmation_id": r"\b(?:provider\s+)?confirmation\s+([A-Z][A-Z0-9-]{5,})\b",
+            "new_seat_limit": r"\b(?:expanded\s+to|for)\s+(\d+)\s+seats\b",
+            "annual_cost_usd": r"\bannual\s+(?:subscription\s+)?price\s+is\s+USD\s+([\d,]+)\b",
+            "term_start_date": r"\bterm\s+begins\s+(\d{4}-\d{2}-\d{2})\b",
+            "term_end_date": r"\bends\s+(\d{4}-\d{2}-\d{2})\b",
+        }
+        found: dict[str, Any] = {}
+        for field, pattern in patterns.items():
+            match = re.search(pattern, provider_reply, flags=re.IGNORECASE)
+            if not match:
+                continue
+            value: Any = match.group(1)
+            if field in {"new_seat_limit", "annual_cost_usd"}:
+                value = int(value.replace(",", ""))
+            found[field] = value
+        return found
 
     @staticmethod
     def _prompt(fixture_id: str, provider_reply: str) -> str:

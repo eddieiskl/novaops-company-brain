@@ -93,11 +93,29 @@ class MayaAgent:
         answer = self._answer(plan, checklist, records, retrieved, state, handoffs)
         if self.answer_port is not None:
             try:
-                answer = await self.answer_port.answer(self._answer_prompt(plan, checklist, records, retrieved, state, handoffs, answer))
+                deterministic_answer = answer
+                model_answer = await self.answer_port.answer(
+                    self._answer_prompt(plan, checklist, records, retrieved, state, handoffs, deterministic_answer)
+                )
+                answer = self._guard_model_answer(plan, model_answer, deterministic_answer)
+                if answer == deterministic_answer and model_answer != deterministic_answer:
+                    errors.append(f"model_answer_contract_fallback:{plan.intent}")
             except Exception as exc:
                 errors.append(f"model_answer_fallback:{exc}")
         state.operational_tool_calls.extend(calls)
         return TurnResult(turn, plan.intent, answer, checklist, retrieved, calls, handoffs, errors)
+
+    @staticmethod
+    def _guard_model_answer(plan: ContextPlan, model_answer: str, deterministic_answer: str) -> str:
+        """Fail closed when a model rewrite drops binding policy facts."""
+
+        required_phrases = {
+            "promotion_path": ("six months", "April 1", "October 1"),
+        }.get(plan.intent, ())
+        folded = model_answer.casefold()
+        if any(phrase.casefold() not in folded for phrase in required_phrases):
+            return deterministic_answer
+        return model_answer
 
     def handle_turn_sync(self, thread_id: str, caller: CallerContext, turn: int, user_text: str) -> TurnResult:
         return asyncio.run(self.handle_turn(thread_id, caller, turn, user_text))
