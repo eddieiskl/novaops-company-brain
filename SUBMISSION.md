@@ -11,7 +11,7 @@ and it is how every trace gets found.
 | ------------------- | ------------------------------------------------ |
 | **Repository URL**  | `https://github.com/eddieiskl/novaops-company-brain` |
 | **Access**          | public |
-| **Commit reviewed** | `4c26541134f27b9905f43a8306e4e71b4357a40f` |
+| **Commit reviewed** | `d4d798adac9ad4ab6920a72037ab8d27a93fc0ff` |
 
 ## 2. Langfuse
 
@@ -60,38 +60,38 @@ blank if you did not run it.
 
 | Item | Turn | Trace ID |
 | ---- | ---- | -------- |
-| `M-I-01` | — | 95041a3c4b8db240cbb0f48992a67c55 |
-| `M-I-02` | — | 2b073f0a258ae4417ecb9dfdbf17b5b1 |
-| `M-I-03` | — | c48312a2b323ae165023a531c4bb0bf0 |
-| `M-S-01` | 1 | 265f8efc2e377678b4a4477b65a7f2dd |
-| `M-S-01` | 2 | 0a41a869b3e640079f2fdf9211929e8a |
-| `M-S-01` | 3 | fb5cafa61ed1db655d2f2e372e8be773 |
-| `M-S-01` | 4 | 9b2ba295d34a0eab0efcb89bf6f9bb91 |
-| `M-S-01` | 5 | 6dc9c0438d70447504326d289b0bdc16 |
-| `M-S-01` | 6 | 7d3fe02605418323d7b4f09fab43b54f |
-| `M-S-01` | 7 | cb36eddcb2ba70b3409aedef58929f05 |
-| `M-S-01` | 8 | 7171faf954eaa23d323df331953952cc |
-| `M-S-01` | 9 | b1e96b05d7b51fc8185f2450a1dac9cf |
-| `M-S-01` | 10 | 4a8efb887e8a227c59241353ff81a2c8 |
-| `M-S-01` | 11 | a66e6133bbc612bc252a5080c3a6005e |
-| `M-S-01` | 12 | 844696a336d813b82ce29818fbf8defb |
-| `M-S-02` | 1 | d1996720a3d6d6807d141ceb87ae209f |
-| `M-S-02` | 2 | af68950416db8f608fc68dc42a1e4992 |
-| `M-S-02` | 3 | ac084d531633125d830bf5f923ba51db |
-| `M-S-02` | 4 | 3737f395791681a0b6ce31174ae83577 |
-| `M-S-02` | 5 | 85fe2a5b215bc4730fa47724c6172bcf |
+| `M-I-01` | — | 0f3cbb817f2b0d80a8c87ed191c42cca |
+| `M-I-02` | — | f614d5f0d2157cc31e3baa37193f2a71 |
+| `M-I-03` | — | 79e57ceb4c41ac1a9a8b01817289e78f |
+| `M-S-01` | 1 | 46ad616837eff75dea7e5afb008985c5 |
+| `M-S-01` | 2 | c13956790b244d4b87fa971bd07572e7 |
+| `M-S-01` | 3 | a923b2d101d87847285f135809ef7d37 |
+| `M-S-01` | 4 | 366ebef5ef5f58bc09505bbc006e4daa |
+| `M-S-01` | 5 | d5f2c33501f88b8d684dee46d4038620 |
+| `M-S-01` | 6 | 7fdc16223353554a46934bba24eb3986 |
+| `M-S-01` | 7 | 7d2e226328e05122f094b766fcb377d5 |
+| `M-S-01` | 8 | 849954ce58c94d8d88206dc3e9b9e9ca |
+| `M-S-01` | 9 | 6a4b4b22286cf3aabbe63e046fed7066 |
+| `M-S-01` | 10 | 61904562d9090367ed951fdd4d65c0c3 |
+| `M-S-01` | 11 | f6ac109b3866b6826f97118a2585d5e4 |
+| `M-S-01` | 12 | dd320f268069ae7847036ff7d787b135 |
+| `M-S-02` | 1 | 3715e2f3c9d6b7cbcdb9a912fa8a6064 |
+| `M-S-02` | 2 | ca80c47bc60e35d7b15b6e93bc7890d9 |
+| `M-S-02` | 3 | a242aca3e2ba2c3fdd58c0f0deea0d62 |
+| `M-S-02` | 4 | 05435c0208ba5c59c737f027dbb0b45e |
+| `M-S-02` | 5 | 3f5888bf6daa1285d29bd500f35564b8 |
 
 ### Webex - IT operations
 
 | Item | Turn | Trace ID |
 | ---- | ---- | -------- |
-| `W-I-01` | — | 437c5933e3d4dc8985609d31342d1b46 |
-| `W-I-02` | — | 4e3cd3bfb15df8ffd6ac6c29fc22fe94 |
-| `W-I-03` | — | 1165d1f346bbe6e7e1d623d466231ef5 |
-| `W-S-01` | 1 | 85bfc5abd62b8051b4d64a0339873cfc |
-| `W-S-01` | 2 | f067402b15cfa6732e2e95afc1c27832 |
-| `W-S-01` | 3 | 14fed43039a3b4b06cb9529fd25799ae |
-| `W-S-01` | 4 | 7541c4834a0c307dbf97001802b61c29 |
+| `W-I-01` | — | c9a494fcbab2d01ce55881da2a52134f |
+| `W-I-02` | — | 5647035bd19fcaf26259a6a04b8adf29 |
+| `W-I-03` | — | 7520da842a471f5ae1c81fd5b103e92f |
+| `W-S-01` | 1 | 5568ed49e699bb237d33b3df16ffb88b |
+| `W-S-01` | 2 | cabb33f20074ba55f6c2a1428d8e6176 |
+| `W-S-01` | 3 | 654fddda19e13d23715c28c441271eb0 |
+| `W-S-01` | 4 | 95ea62075e7b19d9a6d885c639f100dd |
 
 ### Vendor - CRM extraction  *(optional)*
 
