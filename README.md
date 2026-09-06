@@ -1,193 +1,105 @@
-# NovaOps Company Brain — Final Project
+# NovaOps Company Brain
 
-This repository is the capstone implementation of NovaOps' permission-sensitive
-operational company brain. The current required-workflow foundation is executable:
-one public `CompanyBrainAgent` entry point scopes turns into Maya HR/onboarding or
-Webex IT operations, reads the supplied corpus and operational database, filters
-manager-only material before ranking, and keeps writes behind a durable,
-recorded-approval gate.
+NovaOps Company Brain is a permission-sensitive operational agent with one public entry point and two required workflows: Maya for HR/onboarding questions and Webex for IT access operations. It combines cited document retrieval, SQLite-backed operational records, an MCP tool boundary, Bedrock Nova 2 Lite answers, durable approval gates, and Langfuse evaluation traces.
 
-## Current implementation map
+The repository is self-contained. Its company records and documents are synthetic and live under `novaops-enterprise-agent-dataset/`.
 
-| Claim | Evidence in the repository |
+## What is implemented
+
+| Claim | Repository evidence |
 | --- | --- |
-| Canonical project world is local and self-contained | `novaops-enterprise-agent-dataset/` |
-| One entry point scopes Maya and Webex turns | `company_brain/agent.py` |
-| Typed trace and terminal-state contract | `company_brain/schemas.py` |
-| Corpus front matter is preserved during chunking | `maya/retrieval.py` |
-| `audience: manager` is filtered before scoring | `maya/retrieval.py`, `tests/test_canonical_foundation.py` |
-| Manager access derives from reporting relationships, not user group | `maya/ops.py:is_manager` |
-| Operational state survives process restart | `maya/ops.py`, `tests/test_write_gate.py` |
-| Model/user wording cannot directly authorize writes | `webex/write_gate.py` |
-| Existing `T001` and `AR001` are reused | `webex/workflow.py`, `tests/test_webex_baseline.py` |
-| Missing employee-to-seat data is represented honestly | `maya/ops.py:inspect_software_seat_assignments` |
-| Tool capabilities are exposed through an MCP server | `retrieval_mcp_server.py`, `company_brain/mcp_client.py` |
-| Bedrock Nova 2 Lite is isolated behind one model boundary | `model_client.py`, `maya/ports.py` |
-| Langfuse emits agent/classify/scope/tool/answer spans | `company_brain/observability.py` |
-| S2 and S9 long-session checks are committed | `evals/run_maya_s2.py`, `evals/run_maya_s9.py` |
+| One entry point classifies and scopes Maya and Webex requests | `company_brain/agent.py` |
+| Actual classify → scope → execute → tools → answer work is traced | `company_brain/instrumentation.py`, `company_brain/observability.py`, `company_brain/tools.py` |
+| MCP carries caller identity, scope, and required evidence | `retrieval_mcp_server.py`, `company_brain/tools.py` |
+| Manager-only sources are filtered before ranking | `maya/retrieval.py`, `tests/test_canonical_foundation.py` |
+| Manager access derives from reporting relationships, not a claimed group | `maya/ops.py`, `tests/test_maya_permissions.py` |
+| Operational state and pending approvals survive restart | `maya/ops.py`, `tests/test_access_handoff_resume.py` |
+| Model text cannot directly authorize a write | `webex/write_gate.py`, `tests/test_write_gate.py` |
+| Existing Webex ticket `T001` and request `AR001` are reused | `webex/workflow.py`, `tests/test_webex_baseline.py` |
+| Missing employee-to-seat data is reported rather than inferred | `maya/ops.py`, `tests/test_company_brain_agent.py` |
+| Binding golden facts, sources, permissions, and tool-use rules are scored | `evals/binding_checks.py`, `tests/test_submission_runner.py` |
+| All 27 required measured turns have a trace index | `SUBMISSION.md`, `evals/run_submission.py` |
 
-## Stack and boundaries
+## Architecture
 
-- Python for application and evaluation code.
-- SQLite for the supplied operational world and durable approval state. The
-  default local database is `.state/novaops.sqlite3`; set `NOVAOPS_DB_PATH` to
-  isolate a run.
-- In-memory lexical retrieval for deterministic development, with the existing
-  OpenSearch adapter available for production-shaped retrieval.
-- FastMCP for the tool-server boundary.
-- Langfuse remains the required submission channel; the final evaluation runner
-  and trace index are the next milestone.
-- Bedrock Nova 2 Lite will be the live answer model. Deterministic answers remain
-  available so permission, idempotency, and restart tests never depend on a model.
+`CompanyBrainAgent` owns routing and the shared result contract. Maya and Webex remain focused internal workflows. All retrieval and operational calls cross a `ToolGateway`, which can run in-process for deterministic tests or against the FastMCP server. SQLite is the source of durable operational and approval state; the default database is `.state/novaops.sqlite3` and can be overridden with `NOVAOPS_DB_PATH`.
 
-The dataset intentionally has no employee-to-Webex-seat relation. The tool
-`inspect_software_seat_assignments` returns that limitation explicitly; role
-entitlement is never treated as evidence that a person holds a seat.
+The dataset deliberately has no employee-to-Webex-seat relationship. Role entitlement is not proof of assignment, so `inspect_software_seat_assignments` returns that limitation explicitly.
 
-## Verification
+## Install and verify
 
-From the course root:
+Python 3.11 or newer is required.
 
 ```bash
-.venv/bin/python -m pytest novaops-final-project/tests -q
-.venv/bin/python novaops-final-project/evals/run_maya_s2.py
-.venv/bin/python novaops-final-project/evals/run_maya_s9.py
-.venv/bin/python novaops-final-project/evals/run_webex_s8.py
-.venv/bin/python novaops-final-project/evals/run_submission.py
+git clone https://github.com/eddieiskl/novaops-company-brain.git
+cd novaops-company-brain
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e '.[dev]'
+python -m pytest -q
 ```
 
-The current baseline is 47 passing tests, including canonical-corpus ingestion,
-retrieval-layer permission filtering, noisy write-boundary behavior, idempotent
-record reuse, wrong-approver rejection, and approval survival across a database
-reconnect.
-
-For the live MCP boundary, run these in separate terminals from this directory:
+Run the committed deterministic evaluations:
 
 ```bash
-../.venv/bin/python retrieval_mcp_server.py
-NOVAOPS_TOOL_MODE=mcp ../.venv/bin/python scripts/smoke_mcp.py
+python evals/run_maya_s2.py
+python evals/run_maya_s9.py
+python evals/run_webex_s8.py
+python evals/run_submission.py
 ```
 
-The official measured run sends the synthetic evaluation messages and retrieved
-NovaOps evidence to the configured AWS Bedrock and Langfuse projects. Run it only
-after confirming those destinations are approved:
+The submission runner maps every required measured input to binding expectations from `spec/GOLDEN-DATASETS.json` or an explicit Webex check. It exits non-zero when a required fact/source, permission rule, tool-use rule, or generic safety invariant fails.
+
+## MCP and live model mode
+
+Start the MCP server in one terminal:
+
+```bash
+source .venv/bin/activate
+python retrieval_mcp_server.py
+```
+
+Smoke-test it from another:
+
+```bash
+source .venv/bin/activate
+NOVAOPS_TOOL_MODE=mcp python scripts/smoke_mcp.py
+```
+
+For a traced Bedrock run, create a local `.env` or export credentials for AWS and Langfuse, then run:
 
 ```bash
 NOVAOPS_TOOL_MODE=mcp NOVAOPS_ANSWER_MODE=bedrock \
-  ../.venv/bin/python evals/run_submission.py --trace --update-submission
+  python evals/run_submission.py --trace --update-submission
 ```
 
-## Remaining required work
+This sends synthetic evaluation prompts and retrieved synthetic NovaOps evidence to the configured AWS Bedrock and Langfuse projects. Never commit `.env`; it is ignored.
 
-- Fill the repository URL, reviewed commit, Langfuse project, and instructor
-  membership fields in `SUBMISSION.md`.
+## Evaluation and observability
 
-## Earlier Lesson 10/11 prototype history
+Each measured turn creates one Langfuse agent trace. The phase and tool observations wrap live execution, and tool observations record real arguments, results, completion state, and errors. Bedrock calls appear as generation observations. Deterministic score comments explain every binding result rather than reporting an unexplained aggregate pass.
 
-This is the Lesson 10 homework implementation for the first NovaOps flagship workflow:
-Maya Cohen's onboarding evidence agent.
+The bounded improvement record is in `evals/IMPROVEMENT_REPORT.md`. The final trace IDs and reviewed commit are recorded in `SUBMISSION.md`.
 
-## What This Builds
+## Completion status
 
-The `maya/` package adapts the Lesson 10 context-engineering ideas into final-project
-application code:
+| Stage | Status |
+| --- | --- |
+| Required Maya workflow | Complete |
+| Required Webex workflow | Complete |
+| Lesson 11 observability and evaluation | Complete; instructor membership remains an external submission step |
+| Lesson 12 eval-loop engineering | Complete for the required scope; before/after gate is documented |
+| Lesson 13 attack/guardrail extension | Not claimed as a separate optional stage; required permission and write-boundary controls are tested |
+| Lesson 14 packaging/deployment | Not completed; no deployment claim is made |
+| Vendor and Renewal workflows | Optional, not attempted |
 
-- typed caller, plan, evidence, checklist, and Webex handoff models;
-- caller-safe evidence retrieval with hard access filtering before ranking;
-- dynamic read-tool loadouts with no direct write tool;
-- thread-scoped memory for start date, location, Q3 freeze, closed tangents, and
-  Webex handoff idempotency;
-- deterministic replay of all twelve `S2-onboarding-maya` turns;
-- optional model-backed answer generation behind `MAYA_ANSWER_MODE=model`;
-- optional Lesson 9 pending-approval handoff behind `MAYA_WEBEX_PORT=lesson9`.
+## Security and data handling
 
-The implementation runs without Langfuse, AWS, OpenSearch, or model calls. The
-retriever is an in-memory OpenSearch-style adapter over the Lesson 10 NovaOps dataset:
-it stores source/chunk metadata, applies the hard caller filter before scoring, retrieves
-wide, and reranks narrow. The boundary is intentionally shaped so a real OpenSearch
-adapter can replace it later.
+- Secrets and runtime databases are ignored by Git.
+- Regular employees never receive manager-only chunks.
+- Direct write tools are absent from Maya’s model-visible loadouts.
+- A recorded, assigned human approval is required before a gated write can be released.
+- Answers distinguish observed facts, actions taken, recommendations, and blockers.
 
-Optional extensions are included in `docs/optional-extensions.md`: an injectable
-OpenSearch adapter, a model-backed answer mode, a Lesson 9 approval-port adapter, a
-dashboard/chat UI, a token comparison note, and a read-only retrieval MCP server.
-
-OpenSearch is off by default. Use the chat UI retriever toggle or set
-`MAYA_RETRIEVER=opensearch` with `MAYA_OPENSEARCH_URL` to turn it on.
-For local demos without Docker or AWS, run `novaops-final-project/scripts/start_maya_with_dev_opensearch.sh`;
-it starts a tiny OpenSearch-compatible dev service, seeds the Maya evidence index, and
-then launches the dashboard with OpenSearch selectable.
-
-## Lesson 10 Baseline
-
-Live Stage 3 evidence captured before the final-project adaptation:
-
-- command: `python 03-history-distillation/graph.py --session S2`
-- input tokens: `62,864`
-- schema tokens: `10,028`
-- calls: `36`
-- score: `0.90`
-- runtime: `35.4s`
-
-This project preserves the Stage 3 responsibilities but replaces the classroom demo
-write with a typed Webex handoff.
-
-## Reuse Map
-
-- Lesson 7: hard filter before ranking, retrieve-wide/rerank-narrow retrieval shape.
-- Lesson 8: read-only NovaOps operational tools over employee, onboarding, assets,
-  tickets, and subscriptions.
-- Lesson 9: Webex becomes a separate approval workflow boundary.
-- Lesson 10: planning, dynamic loadout, thread memory, closed tangent handling, and
-  bounded S2 replay.
-
-## Run
-
-From the course root:
-
-```bash
-python3 -m pytest novaops-final-project/tests
-python3 novaops-final-project/evals/run_maya_s2.py
-python3 novaops-final-project/evals/token_comparison.py
-```
-
-The replay prints a per-turn summary and exits non-zero if any deterministic check
-fails.
-
-For the chat UI:
-
-```bash
-python3 novaops-final-project/web/server.py
-```
-
-For the chat UI with a local OpenSearch-compatible dev backend:
-
-```bash
-novaops-final-project/scripts/start_maya_with_dev_opensearch.sh
-```
-
-For the read-only retrieval MCP server:
-
-```bash
-python3 novaops-final-project/retrieval_mcp_server.py
-```
-
-Optional live modes:
-
-```bash
-MAYA_ANSWER_MODE=model MAYA_ANSWER_MODEL=<model> OPENAI_API_KEY=<key> python3 novaops-final-project/web/server.py
-MAYA_WEBEX_PORT=lesson9 python3 novaops-final-project/web/server.py
-```
-
-## Lesson 11 Webex Baseline
-
-Lesson 11 adds a measurable Rachel Stein Webex access baseline under `webex/` and
-`evals/`. It is separate from the Maya onboarding agent: Rachel's workflow reuses the
-existing ticket `T001` and access request `AR001`, preserves pending approvals, and
-never claims access was granted while Webex is over the 40-seat contract limit.
-
-```bash
-/Users/MacBook/Documents/AI\ Engineer\ Course/.venv/bin/python novaops-final-project/evals/webex_checks.py
-/Users/MacBook/Documents/AI\ Engineer\ Course/.venv/bin/python novaops-final-project/evals/run_webex_baseline.py --json
-```
-
-See `evals/WEBEX_BASELINE.md` for the Langfuse trace and judge commands.
+See `SUBMISSION.md` for the deliverable index and `spec/PROJECT-DESCRIPTION.md` for the supplied project brief.

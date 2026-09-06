@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "novaops-company-brain"
+version = "0.1.0"
+description = "Permission-sensitive HR/onboarding and IT operations company brain"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "boto3>=1.40,<2",
+  "httpx>=0.27,<1",
+  "langfuse>=4,<5",
+  "mcp>=1.20,<2",
+  "python-dotenv>=1,<2",
+  "PyYAML>=6,<7",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+openai = ["openai>=2,<3"]
+opensearch = ["opensearch-py>=2,<4"]
+
+[tool.setuptools]
+py-modules = ["dev_opensearch_server", "model_client", "retrieval_mcp_server"]
+
+[tool.setuptools.packages.find]
+include = ["company_brain*", "maya*", "webex*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

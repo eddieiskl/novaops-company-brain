@@ -7,6 +7,7 @@ from maya.schemas import CallerContext, ContextPlan, EvidenceChunk
 from maya.schemas import PendingAccessResult, WebexHandoff
 
 from .mcp_client import MCPToolClient
+from .instrumentation import observe
 
 
 class ToolGateway(Protocol):
@@ -37,11 +38,19 @@ class LocalToolGateway:
     }
 
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
-        try:
-            tool = self._TOOLS[name]
-        except KeyError as exc:
-            raise ValueError(f"Unknown local MCP tool: {name}") from exc
-        return tool(**(arguments or {}))
+        arguments = arguments or {}
+        with observe(name, as_type="tool", input={"arguments": arguments}) as span:
+            try:
+                tool = self._TOOLS[name]
+                result = tool(**arguments)
+            except Exception as exc:
+                span.update(
+                    output={"error": str(exc), "error_type": type(exc).__name__},
+                    metadata={"completed": False},
+                )
+                raise
+            span.update(output=result, metadata={"completed": True})
+            return result
 
 
 class RemoteMCPToolGateway:
@@ -49,7 +58,18 @@ class RemoteMCPToolGateway:
         self.client = MCPToolClient(url)
 
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
-        return self.client.call_sync(name, arguments)
+        arguments = arguments or {}
+        with observe(name, as_type="tool", input={"arguments": arguments}) as span:
+            try:
+                result = self.client.call_sync(name, arguments)
+            except Exception as exc:
+                span.update(
+                    output={"error": str(exc), "error_type": type(exc).__name__},
+                    metadata={"completed": False},
+                )
+                raise
+            span.update(output=result, metadata={"completed": True})
+            return result
 
 
 class GatewayOperations:
@@ -118,6 +138,7 @@ class GatewayEvidenceRetriever:
                 "caller_user_group": caller.user_group,
                 "subject_employee_id": plan.subject_employee_id,
                 "intent": plan.intent,
+                "required_evidence": list(plan.required_evidence),
                 "limit": limit,
             },
         )

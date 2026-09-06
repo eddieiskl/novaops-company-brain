@@ -8,9 +8,9 @@ READ_TOOL_LOADOUTS: dict[str, tuple[str, ...]] = {
     "offer_letter": ("search_evidence",),
     "ticket_status": ("list_employee_tickets",),
     "equipment_request": ("check_asset_inventory", "search_evidence"),
-    "policy_question": ("search_evidence",),
+    "policy_question": ("search_evidence", "check_software_subscription"),
     "subscription_review": ("check_software_subscription", "search_evidence"),
-    "access_request": ("check_software_subscription", "search_evidence", "webex_access"),
+    "access_request": (),
     "summary": (),
     "recall": (),
     "personal_device_policy": ("search_evidence",),
@@ -21,6 +21,7 @@ READ_TOOL_LOADOUTS: dict[str, tuple[str, ...]] = {
     "software_license_status": ("list_onboarding_tasks", "check_software_subscription", "search_evidence"),
     "restricted_manager_guide": ("search_evidence",),
     "laptop_status": ("list_onboarding_tasks", "check_asset_inventory", "search_evidence"),
+    "unknown": (),
 }
 
 EXPECTED_READ_TOOLS_BY_TURN: dict[int, tuple[str, ...]] = {
@@ -33,7 +34,7 @@ EXPECTED_READ_TOOLS_BY_TURN: dict[int, tuple[str, ...]] = {
     7: (),
     8: ("check_software_subscription",),
     9: ("search_evidence", "check_software_subscription"),
-    10: ("check_software_subscription", "search_evidence", "webex_access"),
+    10: (),
     11: ("list_onboarding_tasks",),
     12: (),
 }
@@ -61,29 +62,37 @@ def plan_turn(turn: int, text: str, caller: CallerContext) -> ContextPlan:
             operational_reads=("check_asset_inventory",),
             close_tangent=True,
         )
-    if "personal laptop" in lower:
+    if any(phrase in lower for phrase in ("personal laptop", "own laptop", "personal device")):
         return ContextPlan(
             turn,
             "personal_device_policy",
             subject_employee_id=caller.employee_id,
-            required_evidence=("equipment_policy.md",),
+            required_evidence=("equipment_policy.md", "acceptable_use_policy.md"),
         )
-    if "reset mfa" in lower or ("mfa" in lower and "phone" in lower):
+    if (
+        "reset mfa" in lower
+        or ("mfa" in lower and any(word in lower for word in ("phone", "device", "authenticator")))
+        or ("authenticator" in lower and any(word in lower for word in ("replace", "replaced", "lost", "new")))
+    ):
         return ContextPlan(
             turn,
             "mfa_reset",
             subject_employee_id=caller.employee_id,
             required_evidence=("mfa_reset.md", "okta_device_change.md"),
         )
-    if "eligible for remote work equipment" in lower:
+    if "remote" in lower and "equipment" in lower and any(word in lower for word in ("eligible", "qualify", "receive", "get")):
         return ContextPlan(
             turn,
             "remote_equipment_eligibility",
             subject_employee_id="E001",
-            required_evidence=("equipment_policy.md", "maya_cohen_offer_letter.md"),
+            required_evidence=(
+                "equipment_policy.md",
+                "maya_cohen_offer_letter.md",
+                "remote_equipment_budget_update.md",
+            ),
             operational_reads=("get_employee",),
         )
-    if "get promoted" in lower or "promotion" in lower and "path" in lower:
+    if "get promoted" in lower or "promotion" in lower or "career path" in lower:
         return ContextPlan(
             turn,
             "promotion_path",
@@ -136,20 +145,20 @@ def plan_turn(turn: int, text: str, caller: CallerContext) -> ContextPlan:
         )
     if "location" in lower and "start date" in lower:
         return ContextPlan(turn, "recall", active_constraints=tuple(constraints))
-    if "webex seat" in lower or "seat" in lower:
-        return ContextPlan(
-            turn,
-            "subscription_review",
-            active_constraints=tuple(constraints),
-            required_evidence=("webex_license_assignment.md", "webex_vendor_agreement.md"),
-            operational_reads=("check_software_subscription",),
-        )
     if "freeze" in lower or "finance" in lower:
         return ContextPlan(
             turn,
             "policy_question",
             active_constraints=tuple(constraints),
             required_evidence=("saas_renewal_freeze_q3.md", "webex_license_assignment.md", "webex_vendor_agreement.md"),
+            operational_reads=("check_software_subscription",),
+        )
+    if "webex seat" in lower or "seat" in lower:
+        return ContextPlan(
+            turn,
+            "subscription_review",
+            active_constraints=tuple(constraints),
+            required_evidence=("webex_license_assignment.md", "webex_vendor_agreement.md"),
             operational_reads=("check_software_subscription",),
         )
     if "file the webex access request" in lower:
@@ -161,7 +170,7 @@ def plan_turn(turn: int, text: str, caller: CallerContext) -> ContextPlan:
             operational_reads=("check_software_subscription",),
             allow_webex_handoff=True,
         )
-    return ContextPlan(turn, "employee_lookup", active_constraints=tuple(constraints), operational_reads=("get_employee",))
+    return ContextPlan(turn, "unknown", subject_employee_id=caller.employee_id, active_constraints=tuple(constraints))
 
 
 def select_loadout(plan: ContextPlan) -> tuple[str, ...]:

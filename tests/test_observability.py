@@ -66,8 +66,18 @@ def test_trace_contains_required_decision_and_tool_spans(monkeypatch) -> None:
     traced.flush()
 
     names = [item["name"] for item in fake.observations]
-    assert names == ["M-I-01 turn 1", "classify", "scope", "search_evidence", "answer"]
+    assert names == ["M-I-01 turn 1", "classify", "scope", "execute", "retrieve_evidence", "answer"]
+    tool = next(item for item in fake.observations if item["name"] == "retrieve_evidence")
+    assert tool["input"]["arguments"]["caller_employee_id"] == "E010"
+    assert tool["input"]["arguments"]["required_evidence"] == [
+        "equipment_policy.md",
+        "acceptable_use_policy.md",
+    ]
+    assert tool["update"]["metadata"]["completed"] is True
+    assert len(tool["update"]["output"]) >= 2
     assert result.trace_id == "trace-test-001"
     assert result.trace_metadata()["request_id"] == "M-I-01:single"
+    assert result.trace_metadata()["workflow_scope"] == "maya_hr"
+    assert "scope" not in result.trace_metadata()
     assert all(value == 1.0 for value in fake.scores.values())
     assert fake.flushed is True

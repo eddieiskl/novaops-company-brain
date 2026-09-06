@@ -44,15 +44,37 @@ class BedrockAnswerPort:
         self.model = model or BedrockModelClient()
 
     async def answer(self, prompt: str) -> str:
-        return await asyncio.to_thread(
-            self.model.generate,
-            prompt,
-            system=(
-                "You are the NovaOps company brain. Use only supplied evidence and records. "
-                "Cite each factual claim, distinguish observed facts from recommendations, "
-                "and never claim an action happened unless application state proves it."
-            ),
+        from company_brain.instrumentation import observe
+
+        system = (
+            "You are the NovaOps company brain. Use only supplied evidence and records. "
+            "Cite each factual claim, distinguish observed facts from recommendations, "
+            "and never claim an action happened unless application state proves it."
         )
+        with observe(
+            "bedrock_answer",
+            as_type="generation",
+            input={"prompt": prompt, "system": system},
+            metadata={"region": self.model.region},
+            model=self.model.model_id,
+            model_parameters={
+                "max_tokens": self.model.max_tokens,
+                "temperature": self.model.temperature,
+            },
+        ) as generation:
+            try:
+                answer = await asyncio.to_thread(self.model.generate, prompt, system=system)
+            except Exception as exc:
+                generation.update(
+                    output={"error": str(exc), "error_type": type(exc).__name__},
+                    metadata={"completed": False, "model": self.model.model_id},
+                )
+                raise
+            generation.update(
+                output={"answer": answer},
+                metadata={"completed": True, "model": self.model.model_id},
+            )
+            return answer
 
 
 class WebexPort(Protocol):

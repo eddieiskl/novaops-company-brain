@@ -13,10 +13,12 @@ from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+load_dotenv(ROOT / ".env", override=False)
 load_dotenv(ROOT.parent / ".env", override=False)
 
 from company_brain import build_company_brain_from_env
 from company_brain.observability import TracedCompanyBrainAgent
+from binding_checks import load_binding_expectations
 from maya import CallerContext, ops
 
 
@@ -47,6 +49,7 @@ def caller_context(caller: dict) -> CallerContext:
 
 def run(*, trace: bool, include_optional: bool = False) -> dict:
     dataset = load_inputs()
+    expectations = load_binding_expectations(dataset)
     records: list[dict] = []
     for workflow in required_workflows(dataset, include_optional):
         if not workflow.get("required"):
@@ -65,6 +68,7 @@ def run(*, trace: bool, include_optional: bool = False) -> dict:
                 turn=1,
                 request_id=request_id,
                 case_id=case["id"],
+                expectation=expectations.get((case["id"], None)),
             )
             records.append(_record(case["id"], None, result))
             agent.flush()
@@ -82,11 +86,17 @@ def run(*, trace: bool, include_optional: bool = False) -> dict:
                     turn=turn["n"],
                     request_id=request_id,
                     case_id=session["id"],
+                    expectation=expectations.get((session["id"], turn["n"])),
                 )
                 records.append(_record(session["id"], turn["n"], result))
             agent.flush()
 
     expected = 27
+    required_keys = {
+        (record["item"], record["turn"])
+        for record in records
+    }
+    unmapped = sorted(required_keys - set(expectations), key=str)
     summary = {
         "mode": "trace" if trace else "dry-run",
         "expected_required_traces": expected,
@@ -94,6 +104,11 @@ def run(*, trace: bool, include_optional: bool = False) -> dict:
         "all_deterministic_checks_pass": all(
             all(value == 1.0 for value in record["scores"].values()) for record in records
         ),
+        "all_binding_checks_pass": all(
+            all(value == 1.0 for name, value in record["scores"].items() if name.startswith("binding_"))
+            for record in records
+        ) and not unmapped,
+        "unmapped_required_inputs": unmapped,
         "trace_ids_present": sum(bool(record["trace_id"]) for record in records),
     }
     return {"summary": summary, "records": records}
@@ -112,6 +127,7 @@ def _record(item_id: str, turn: int | None, result) -> dict:
         "tool_sequence": result.tool_sequence,
         "citations": result.citations,
         "scores": result.scores,
+        "score_comments": result.score_comments,
         "answer": result.answer,
     }
 

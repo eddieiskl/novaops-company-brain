@@ -27,11 +27,17 @@ def retrieve_evidence(
     caller_user_group: str,
     subject_employee_id: str = "E001",
     intent: str = "offer_letter",
+    required_evidence: list[str] | None = None,
     limit: int = 4,
 ) -> list[dict]:
     """Retrieve cited evidence with caller authorization enforced before search."""
     caller = CallerContext(caller_employee_id, caller_user_group)  # type: ignore[arg-type]
-    plan = ContextPlan(0, intent, subject_employee_id=subject_employee_id)
+    plan = ContextPlan(
+        0,
+        intent,
+        subject_employee_id=subject_employee_id,
+        required_evidence=tuple(required_evidence or ()),
+    )
     chunks = retriever.retrieve(query, caller, plan, limit=limit)
     return [
         {

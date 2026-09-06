@@ -24,6 +24,7 @@ class AgentTurnResult:
     trace_id: str | None = None
     trace_url: str | None = None
     scores: dict[str, float] = field(default_factory=dict)
+    score_comments: dict[str, str] = field(default_factory=dict)
 
     def trace_metadata(self) -> dict:
         return {
@@ -32,7 +33,7 @@ class AgentTurnResult:
             "turn": self.turn,
             "caller_id": self.caller_employee_id,
             "caller_group": self.caller_user_group,
-            "scope": self.scope,
+            "workflow_scope": self.scope,
             "intent": self.intent,
             "tool_sequence": self.tool_sequence,
             "status": self.status,

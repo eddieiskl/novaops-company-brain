@@ -66,3 +66,35 @@ def test_noisy_four_turn_session_drafts_without_writing_and_reuses_existing_requ
     assert "no duplicate" in results[3].answer
     assert "create_access_request" not in results[3].tool_sequence
     assert len(ops.list_access_requests("E010", "Webex")) == 1
+
+
+def test_first_turn_webex_paraphrases_route_without_exact_evaluation_phrasing() -> None:
+    ops.reset_conn()
+    ticket = CompanyBrainAgent().handle_turn(
+        "webex-paraphrase-ticket",
+        CallerContext("E010", "UG_REGULAR"),
+        "Could you check whether my Webex ticket is still open?",
+    )
+    seats = CompanyBrainAgent().handle_turn(
+        "webex-paraphrase-seats",
+        CallerContext("E018", "UG_REGULAR"),
+        "Who on my team is assigned a Webex seat?",
+    )
+
+    assert ticket.scope == "webex_ops" and "T001" in ticket.answer
+    assert seats.scope == "webex_ops" and "does not record employee-to-seat assignments" in seats.answer
+
+
+def test_unknown_request_does_not_default_to_mayas_record() -> None:
+    ops.reset_conn()
+    result = CompanyBrainAgent().handle_turn(
+        "unknown-request",
+        CallerContext("E010", "UG_REGULAR"),
+        "Can you take care of that thing for me?",
+    )
+
+    assert result.intent == "unknown"
+    assert result.status == "needs_human"
+    assert result.tool_sequence == []
+    assert "clearer current request" in result.answer
+    assert "E001" not in result.answer

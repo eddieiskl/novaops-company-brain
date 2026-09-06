@@ -29,6 +29,7 @@ class ThreadState:
     tangent_closed: bool = False
     retrieved: list[EvidenceChunk] = field(default_factory=list)
     operational_tool_calls: list[str] = field(default_factory=list)
+    operational_records: dict[str, list[dict]] = field(default_factory=dict)
     handoffs: dict[str, PendingAccessResult] = field(default_factory=dict)
     max_steps: int = 8
 
@@ -79,7 +80,8 @@ class MayaAgent:
             return TurnResult(turn, plan.intent, "Access denied.", self._checklist([], []), retrieved, calls, [], errors)
 
         records = self._run_operational_reads(plan, loadout, calls)
-        checklist = self._checklist(state.retrieved + retrieved, records)
+        state.operational_records.update(records)
+        checklist = self._checklist(state.retrieved + retrieved, state.operational_records)
         handoffs: list[PendingAccessResult] = []
 
         if plan.allow_webex_handoff:
@@ -155,7 +157,7 @@ class MayaAgent:
             ]
         )
 
-        asset_records = records.get("assets") or self.ops.check_asset_inventory(location="Israel")
+        asset_records = records.get("assets", [])
         laptop = next((a for a in asset_records if a["asset_type"] == "Laptop" and a["status"] == "available"), None)
         monitor = next((a for a in asset_records if a["asset_type"] == "Monitor" and a["status"] == "available"), None)
         checklist.equipment.extend(
@@ -174,8 +176,9 @@ class MayaAgent:
             ]
         )
 
-        sub = (records.get("subscriptions") or self.ops.check_software_subscription("Webex"))[0]
-        if sub["over_limit"]:
+        subscriptions = records.get("subscriptions", [])
+        sub = subscriptions[0] if subscriptions else None
+        if sub and sub["over_limit"]:
             checklist.blocked_items.append(
                 ChecklistItem(
                     "Webex license",
@@ -293,12 +296,21 @@ class MayaAgent:
             sub = records["subscriptions"][0]
             return f"No Webex seat is available: {sub['active_seats']} active seats against a {sub['seat_limit']}-seat limit."
         if plan.intent == "equipment_request":
-            return "Maya has an Israel laptop reserved, a monitor available, and a headset requirement that remains to be confirmed."
+            laptop = next(
+                (
+                    item
+                    for item in records.get("assets", [])
+                    if item["asset_type"] == "Laptop" and item["status"] == "available"
+                ),
+                None,
+            )
+            laptop_fact = f"{laptop['asset_id']} ({laptop['model']})" if laptop else "a managed laptop"
+            return f"Maya has Israel laptop {laptop_fact} reserved, a monitor available, and a headset requirement that remains to be confirmed."
         if plan.intent == "offer_letter":
             return "Maya's offer letter requires Okta, Slack, Notion, Salesforce, Webex, BambooHR employee self-service, SupportDesk viewer, and remote equipment."
         if plan.intent == "onboarding_status":
             return "Maya's checklist includes Okta pending, laptop/equipment planned, Salesforce planned, Webex blocked, and BambooHR planned."
-        return "Maya Cohen is E001, Customer Success Manager, starting 2026-08-01 in Israel."
+        return "I need a clearer current request before I can choose an authorized source or operation."
 
     @staticmethod
     def _citation_suffix(retrieved: list[EvidenceChunk]) -> str:

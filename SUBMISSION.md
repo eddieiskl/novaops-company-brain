@@ -33,8 +33,9 @@ and it is how every trace gets found.
 
 | Optional stage | Done | Evidence |
 | ------------------------------- | -------- | -------- |
-| Lesson 12 — loop engineering     | no | required-path evaluation gates only |
-| Lesson 14 — packaging and deploy | no | optional stage not attempted |
+| Lesson 12 — loop engineering     | yes | bounded binding-score improvement loop in `evals/IMPROVEMENT_REPORT.md` |
+| Lesson 13 — attack and guardrail extension | no | not claimed separately; required permission/write controls are tested |
+| Lesson 14 — packaging and deploy | no | dependency manifest and CI added; container/cloud stage not attempted |
 
 ## 4. Durable-behavior evidence
 
@@ -114,5 +115,7 @@ blank if you did not run it.
 
 The required Maya and Webex scope is complete; Vendor, Renewal, and deployment were deliberately
 left out so the required permission, approval, idempotency, and observability paths could be
-finished and evidenced. The live evaluation used Bedrock Nova 2 Lite through the MCP-backed core;
-deterministic answer fallbacks remain available for repeatable local safety tests.
+finished and evidenced. Lesson 12's bounded improvement loop is documented and the project now
+has a standalone dependency manifest plus CI, but no Lesson 14 deployment claim is made. The live
+evaluation used Bedrock Nova 2 Lite through the MCP-backed core; deterministic answer fallbacks
+remain available for repeatable local safety tests.

@@ -205,7 +205,15 @@ class WebexAccessWorkflow:
             if decision.existing_request_id
             else ""
         )
+        ticket_status = ""
+        if decision.existing_ticket_id:
+            ticket_fact = next(
+                (fact for fact in decision.observed_facts if f"Ticket {decision.existing_ticket_id}" in fact),
+                "",
+            )
+            if ticket_fact:
+                ticket_status = f" {ticket_fact}"
         return (
             f"{decision.employee_name}'s {decision.software} access is not granted. "
-            f"I reused{ticket}{request}. {reason}"
+            f"I reused{ticket}{request}.{ticket_status} {reason}"
         )

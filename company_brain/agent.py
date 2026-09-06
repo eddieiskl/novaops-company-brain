@@ -5,12 +5,13 @@ import uuid
 
 from maya import CallerContext, MayaAgent
 from maya.ports import AnswerPort
-from maya.policy import plan_turn
+from maya.policy import plan_turn, select_loadout
 from maya.schemas import ContextPlan
 from webex import WebexAccessWorkflow, WebexCaseInput
 from webex.write_gate import RecordedApprovalWriteGate
 
 from .schemas import AgentTurnResult
+from .instrumentation import observe
 from .tools import GatewayEvidenceRetriever, GatewayOperations, GatewayWebexPort, LocalToolGateway, ToolGateway
 
 
@@ -57,50 +58,94 @@ class CompanyBrainAgent:
         state = self._threads.setdefault(thread_id, _ThreadContext())
         state.turns = turn or (state.turns + 1)
         request_id = request_id or f"req-{uuid.uuid4().hex}"
-        if not state.workflow:
-            state.workflow = self._initial_workflow(message)
+        with observe("classify", input={"newest_message": message}) as classification:
+            if not state.workflow:
+                state.workflow = self._initial_workflow(message)
+            maya_plan = plan_turn(state.turns, message, caller)
+            direct_webex = state.turns == 1 and self._is_direct_webex(message)
+            classification.update(
+                output={
+                    "workflow": state.workflow,
+                    "planned_intent": maya_plan.intent,
+                    "direct_webex": direct_webex,
+                }
+            )
 
-        if state.workflow == "webex_boundary":
-            return self._handle_webex_boundary(thread_id, caller, message, state, request_id)
+        with observe(
+            "scope",
+            input={"caller_id": caller.employee_id, "caller_group": caller.user_group},
+        ) as scoping:
+            if state.workflow == "webex_boundary" or direct_webex:
+                planned_scope = "webex_ops"
+                visible_tools: list[str] = []
+            else:
+                planned_scope = (
+                    "webex_ops"
+                    if maya_plan.intent in {"ticket_status", "subscription_review", "access_request"}
+                    else "maya_hr"
+                )
+                visible_tools = list(select_loadout(maya_plan))
+            scoping.update(output={"scope": planned_scope, "visible_tools": visible_tools})
 
-        maya_plan = plan_turn(state.turns, message, caller)
-        if self._is_direct_webex(message):
-            return self._handle_direct_webex(thread_id, caller, message, state, request_id)
+        with observe(
+            "execute",
+            input={"workflow": state.workflow, "planned_intent": maya_plan.intent},
+        ) as execution:
+            if state.workflow == "webex_boundary":
+                result = self._handle_webex_boundary(thread_id, caller, message, state, request_id)
+            elif direct_webex:
+                result = self._handle_direct_webex(thread_id, caller, message, state, request_id)
+            else:
+                maya_result = self.maya.handle_turn_sync(thread_id, caller, state.turns, message)
+                blocker_relevant = maya_plan.intent in {
+                    "onboarding_status",
+                    "subscription_review",
+                    "access_request",
+                    "software_license_status",
+                    "summary",
+                }
+                status = "blocked" if blocker_relevant and maya_result.checklist.blocked_items else "completed"
+                if maya_plan.intent == "unknown":
+                    status = "needs_human"
+                citations = list(dict.fromkeys(
+                    [chunk.source_path for chunk in maya_result.retrieved]
+                    + self._operational_citations(
+                        maya_plan.intent,
+                        maya_plan.subject_employee_id,
+                        maya_result.operational_tool_calls,
+                    )
+                ))
+                for citation in citations:
+                    if citation not in state.citations:
+                        state.citations.append(citation)
+                if not citations and maya_plan.intent in {"recall", "summary"}:
+                    citations = list(state.citations)
+                result = AgentTurnResult(
+                    request_id=request_id,
+                    thread_id=thread_id,
+                    turn=state.turns,
+                    scope=planned_scope,
+                    intent=maya_plan.intent,
+                    status=status,
+                    answer=maya_result.answer,
+                    caller_employee_id=caller.employee_id,
+                    caller_user_group=caller.user_group,
+                    tool_sequence=maya_result.operational_tool_calls,
+                    citations=citations,
+                    payload=maya_result,
+                )
+            execution.update(
+                output={
+                    "intent": result.intent,
+                    "status": result.status,
+                    "tool_sequence": result.tool_sequence,
+                }
+            )
 
-        maya_result = self.maya.handle_turn_sync(thread_id, caller, state.turns, message)
-        scope = "webex_ops" if maya_plan.intent in {"ticket_status", "subscription_review", "access_request"} else "maya_hr"
-        blocker_relevant = maya_plan.intent in {
-            "onboarding_status",
-            "subscription_review",
-            "access_request",
-            "software_license_status",
-            "summary",
-        }
-        status = "blocked" if blocker_relevant and maya_result.checklist.blocked_items else "completed"
-        citations = list(dict.fromkeys(
-            [chunk.source_path for chunk in maya_result.retrieved]
-            + self._operational_citations(maya_plan.intent, maya_plan.subject_employee_id, maya_result.operational_tool_calls)
-        ))
-        for citation in citations:
-            if citation not in state.citations:
-                state.citations.append(citation)
-        if not citations and maya_plan.intent in {"recall", "summary"}:
-            citations = list(state.citations)
-        answer = self._ensure_cited(maya_result.answer, citations)
-        return AgentTurnResult(
-            request_id=request_id,
-            thread_id=thread_id,
-            turn=state.turns,
-            scope=scope,
-            intent=maya_plan.intent,
-            status=status,
-            answer=answer,
-            caller_employee_id=caller.employee_id,
-            caller_user_group=caller.user_group,
-            tool_sequence=maya_result.operational_tool_calls,
-            citations=citations,
-            payload=maya_result,
-        )
+        with observe("answer", input={"citations": result.citations}) as answering:
+            result.answer = self._ensure_cited(result.answer, result.citations)
+            answering.update(output={"answer": result.answer, "status": result.status})
+        return result
 
     @staticmethod
     def _operational_citations(intent: str, subject_employee_id: str, tools: list[str]) -> list[str]:
@@ -126,18 +171,24 @@ class CompanyBrainAgent:
     @staticmethod
     def _initial_workflow(message: str) -> str:
         lowered = message.lower()
-        if "vpn" in lowered and ("do not" in lowered or "dont" in lowered or "don't" in lowered):
+        no_write = any(phrase in lowered for phrase in ("do not", "dont", "don't", "no-file", "lookup only"))
+        mentions_write = any(word in lowered for word in ("create", "submit", "file", "request"))
+        if "vpn" in lowered and no_write and mentions_write:
             return "webex_boundary"
         return "company_brain"
 
     @staticmethod
     def _is_direct_webex(message: str) -> bool:
         lowered = message.lower()
-        return (
-            "status of my webex" in lowered
-            or "team members has a webex seat" in lowered
-            or ("need webex access" in lowered and "not licensed" in lowered)
+        if "webex" not in lowered:
+            return False
+        ticket_status = "ticket" in lowered and any(word in lowered for word in ("status", "open", "check"))
+        seat_audit = "seat" in lowered and any(word in lowered for word in ("which", "who", "team", "member", "assigned"))
+        access_problem = any(word in lowered for word in ("access", "license", "licensed")) and any(
+            phrase in lowered
+            for phrase in ("need", "not licensed", "unlicensed", "no license", "can't log in", "cannot log in")
         )
+        return ticket_status or seat_audit or access_problem
 
     def _handle_direct_webex(
         self,
@@ -148,7 +199,7 @@ class CompanyBrainAgent:
         request_id: str,
     ) -> AgentTurnResult:
         lowered = message.lower()
-        if "team members has a webex seat" in lowered:
+        if "seat" in lowered and any(word in lowered for word in ("which", "who", "team", "member", "assigned")):
             facts = self.operations.inspect_software_seat_assignments("Webex", caller.employee_id)
             answer = (
                 "NovaOps does not record employee-to-seat assignments, so I cannot truthfully list which team "
