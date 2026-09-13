@@ -8,7 +8,7 @@ const fallback = {
   release_commit: "lesson-13",
   metrics: [
     { label: "Workflows", value: "4 / 4", note: "Required + optional" },
-    { label: "Tests", value: "87 / 87", note: "Full suite" },
+    { label: "Tests", value: "92 / 92", note: "Full suite" },
     { label: "Evaluation", value: "33 / 33", note: "Optional-inclusive" },
     { label: "Deterministic", value: "243 × 1.0", note: "Binding scores" },
     { label: "Security", value: "16 / 16", note: "Live guard cases" }
@@ -27,7 +27,7 @@ const fallback = {
     { label: "Index restored", value: "634 / 634", note: "Owned poison removed" }
   ],
   proof: [
-    { label: "Pytest", value: "87 / 87", note: "Reliability and durability" },
+    { label: "Pytest", value: "92 / 92", note: "Reliability and durability" },
     { label: "Golden records", value: "33 / 33", note: "Required + optional" },
     { label: "API scores", value: "243", note: "Every result is 1.0" },
     { label: "Advisory judge", value: "0.897", note: "99 separate scores" },
