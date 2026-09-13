@@ -34,11 +34,6 @@ class RetrieverStatus:
 
 
 def build_opensearch_client_from_env():
-    try:
-        from opensearchpy import OpenSearch
-    except ImportError as exc:
-        raise RuntimeError("Install opensearch-py before enabling OpenSearch retrieval.") from exc
-
     maya_url = os.getenv("MAYA_OPENSEARCH_URL")
     url = maya_url or os.getenv("OPENSEARCH_ENDPOINT")
     collection = os.getenv("MAYA_OPENSEARCH_COLLECTION") or os.getenv("OPENSEARCH_COLLECTION")
@@ -67,6 +62,11 @@ def build_opensearch_client_from_env():
         raise RuntimeError(
             "Set MAYA_OPENSEARCH_URL or MAYA_OPENSEARCH_COLLECTION before enabling OpenSearch retrieval."
         )
+
+    try:
+        from opensearchpy import OpenSearch
+    except ImportError as exc:
+        raise RuntimeError("Install opensearch-py before enabling OpenSearch retrieval.") from exc
 
     if not service:
         return OpenSearch(hosts=[url])
