@@ -13,6 +13,20 @@ requiring AWS or a running cluster.
 Set `MAYA_DATASET_ROOT=/path/to/novaops/data` to point either retriever at a different
 NovaOps dataset root.
 
+Managed OpenSearch Serverless can be selected by collection name. The runtime resolves
+the current endpoint and signs data-plane requests with SigV4:
+
+```bash
+MAYA_RETRIEVER=opensearch \
+MAYA_OPENSEARCH_COLLECTION=<collection-name> \
+MAYA_OPENSEARCH_SERVICE=aoss \
+python3 novaops-final-project/web/server.py
+```
+
+`OPENSEARCH_COLLECTION` and `OPENSEARCH_ENDPOINT` remain accepted as course-level
+fallbacks. Optional `OPENSEARCH_AWS_ACCESS_KEY_ID` and
+`OPENSEARCH_AWS_SECRET_ACCESS_KEY` variables support a separate OpenSearch account.
+
 For the easiest local demo, use the bundled dev service:
 
 ```bash
@@ -38,6 +52,30 @@ MAYA_RETRIEVER=opensearch MAYA_OPENSEARCH_URL=http://127.0.0.1:9200 python3 nova
 When `MAYA_OPENSEARCH_URL` is set, Maya auto-indexes its bundled evidence on startup by
 default. Set `MAYA_OPENSEARCH_AUTO_INDEX=0` to skip that step for an already-managed
 index.
+
+## Retrieved-Content Guard And Quarantine
+
+`maya.retrieval_security.GuardedEvidenceRetriever` decorates either retriever without
+changing its authorization contract. It checks an exact quarantine registry first,
+then requires the chunk ID, source path, and SHA-256 to match an application-owned
+`TrustedCorpusManifest`. An optional `BedrockRetrievalGuard` can inspect the remaining
+content. Rejected audit rows keep only chunk ID, source, digest, decision, and reason;
+rejected text does not enter the answer prompt.
+
+`MAYA_RETRIEVAL_SECURITY=provenance` is the default. Use `semantic` to add the Bedrock
+content classifier or `off` only to prove that other application boundaries remain
+independent. This closes the lesson's plausible-false-fact gap: a fluent document does
+not become trusted merely because it contains no obvious injection language.
+
+Run the owned recovery experiment only against the synthetic capstone index:
+
+```bash
+python evals/run_lesson13_capstone_poison.py
+```
+
+The runner refuses to insert if a prior owned poison remains, journals ownership before
+submission, quarantines exact identity, verifies deletion, invalidates in-process thread
+evidence, and checks both affected and fresh conversations after cleanup.
 
 The chat UI also has a retriever toggle. If OpenSearch is not configured, the API
 returns a clear error and leaves memory mode active.
@@ -118,3 +156,16 @@ It exposes:
 - `retrieve_evidence(query, caller_employee_id, caller_user_group, subject_employee_id, intent, limit)`
 
 The server never exposes write tools and enforces caller authorization before retrieval.
+
+## Lesson 14 Cloud Deployment
+
+The final optional stage has a cost-gated AWS implementation under `deploy/aws/` and a
+hardened `docker-compose.cloud.yml`. It provisions an exact public commit on one small EC2
+host, uses encrypted EFS for state outside the containers, restricts API ingress to one
+explicit `/32`, and gives the host only a keyless Systems Manager role. The three
+application containers are non-root and read-only and receive no model credentials.
+
+`deploy/aws/verify.sh` checks cheap liveness, dependency-aware readiness, the exact release
+SHA, and one safe end-to-end agent turn. `deploy/aws/destroy.sh` deletes and waits for the
+whole stack so review resources do not keep billing. Live provisioning remains intentionally
+blocked until AWS authentication and explicit acceptance of the estimated cost.

@@ -17,12 +17,15 @@ const dashboardSystems = document.querySelector("#dashboardSystems");
 const dashboardEquipment = document.querySelector("#dashboardEquipment");
 const dashboardPolicy = document.querySelector("#dashboardPolicy");
 const turnTrace = document.querySelector("#turnTrace");
+const threadLabel = document.querySelector("#threadLabel");
 
-const threadId = "maya-ui-session";
+const threadId = `maya-ui-${crypto.randomUUID().slice(0, 8)}`;
+threadLabel.textContent = threadId;
 const seedTurns = [
-  "I'm coordinating Maya Cohen's onboarding. She starts 2026-08-01, she's hybrid based in Israel, and the Q3 SaaS freeze applies to anything this costs us. Pull up her employee record.",
-  "What does her offer letter say she needs on day one?",
-  "And what's actually on her onboarding checklist right now?"
+  "Who is Maya and when does she start?",
+  "Which systems does Maya need on day one?",
+  "What is currently blocking her onboarding?",
+  "Is a Webex seat available for Maya?"
 ];
 let nextTurn = 1;
 let retrieverMode = "memory";
@@ -158,7 +161,8 @@ function updateRetriever(retriever, notice = "") {
   const rows = [
     runtimeRow("Retriever", retriever.detail),
     runtimeRow("Answer", retriever.answer_detail || "Using deterministic answer templates."),
-    runtimeRow("Webex", retriever.webex_detail || "Using deterministic fake Webex handoff port.")
+    runtimeRow("Webex", retriever.webex_detail || "Using deterministic fake Webex handoff port."),
+    runtimeRow("Retrieval trust", retriever.retrieval_security_detail || "Application-owned source manifest is enforced.")
   ];
   if (notice) rows.push(runtimeRow("Notice", notice));
   retrieverDetail.replaceChildren(...rows);

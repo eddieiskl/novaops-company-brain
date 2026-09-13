@@ -21,6 +21,20 @@ def test_health_checks_are_cheap_and_model_free(monkeypatch) -> None:
     assert client.get("/health/ready").json() == {"status": "ready", "tool_mode": "local"}
 
 
+def test_version_reports_the_immutable_release(monkeypatch) -> None:
+    release = "a" * 40
+    monkeypatch.setenv("NOVAOPS_RELEASE_SHA", release)
+    response = _client(monkeypatch).get("/health/version")
+    assert response.status_code == 200
+    assert response.json() == {"release_sha": release}
+
+
+def test_version_fails_closed_for_invalid_release(monkeypatch) -> None:
+    monkeypatch.setenv("NOVAOPS_RELEASE_SHA", "latest")
+    response = _client(monkeypatch).get("/health/version")
+    assert response.status_code == 503
+
+
 def test_agent_endpoint_uses_the_same_core_contract(monkeypatch) -> None:
     client = _client(monkeypatch)
     response = client.post(

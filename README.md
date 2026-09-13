@@ -22,7 +22,10 @@ The repository is self-contained. Its company records and documents are syntheti
 | Vendor extraction uses one forced-tool call and validates the supplied schema locally | `vendor/extractor.py`, `tests/test_vendor_extractor.py` |
 | Renewal pauses, survives restart, and replays every event exactly once | `renewal/`, `tests/test_renewal_workflow.py` |
 | Adversarial permission, approval, and provider proposals fail closed | `evals/run_guardrail_attacks.py`, `tests/test_guardrail_attacks.py` |
-| API, MCP, and worker ship as separate non-root containers | `Dockerfile.*`, `docker-compose.yml`, `docs/deployment.md` |
+| A typed input guard runs before planning and can be tested independently of server authorization | `company_brain/security.py`, `evals/run_lesson13_offline.py`, `tests/test_input_guard.py` |
+| Retrieved content can be semantically screened or quarantined by exact ID/source/SHA-256 before the answer model | `maya/retrieval_security.py`, `tests/test_retrieval_guard.py` |
+| A project-specific poison reaches a real OpenSearch-backed Bedrock answer, then is contained, deleted, and cleared from thread memory | `evals/run_lesson13_capstone_poison.py`, `docs/lesson13-capstone-poison-incident.md` |
+| API, MCP, and worker ship as separate non-root containers, with a cost-gated AWS/EFS deployment path | `Dockerfile.*`, `docker-compose*.yml`, `deploy/aws/`, `docs/deployment.md` |
 
 ## Architecture
 
@@ -53,6 +56,15 @@ python evals/run_webex_s8.py
 python evals/run_submission.py
 python evals/run_submission.py --include-optional
 python evals/run_guardrail_attacks.py
+python evals/run_lesson13_offline.py
+```
+
+With the synthetic AWS/OpenSearch environment configured, the Lesson 13 live evidence
+commands are:
+
+```bash
+python evals/run_lesson13_live.py
+python evals/run_lesson13_capstone_poison.py
 ```
 
 The submission runner maps every required measured input to binding expectations from `spec/GOLDEN-DATASETS.json` or an explicit Webex check. It exits non-zero when a required fact/source, permission rule, tool-use rule, or generic safety invariant fails.
@@ -76,7 +88,7 @@ NOVAOPS_TOOL_MODE=mcp python scripts/smoke_mcp.py
 For a traced Bedrock run, create a local `.env` or export credentials for AWS and Langfuse, then run:
 
 ```bash
-NOVAOPS_TOOL_MODE=mcp NOVAOPS_ANSWER_MODE=bedrock \
+NOVAOPS_TOOL_MODE=mcp NOVAOPS_ANSWER_MODE=bedrock NOVAOPS_GUARD_MODE=bedrock \
   python evals/run_submission.py --include-optional --trace --update-submission
 ```
 
@@ -100,8 +112,8 @@ GitHub Actions runs pytest, the optional-inclusive 33-case promotion gate, the f
 | Lesson 12 eval-loop engineering | Complete for the required scope; before/after gate is documented |
 | Vendor workflow | Complete; three schema-valid 0/1/2-gap extractions |
 | Renewal workflow | Complete; three restart-safe, replay-safe outcomes |
-| Lesson 13 attack/guardrail extension | Complete as an explicit focused suite, although the supplied project has no measured security tier |
-| Lesson 14 packaging/deployment | Packaging and local Compose deployment complete; cloud provisioning awaits explicit cost authorization |
+| Lesson 13 security homework | Complete; 16-case live semantic guard, independent enforcement proof, project-specific OpenSearch poisoning/recovery evidence, and application-owned retrieval provenance |
+| Lesson 14 packaging/deployment | Packaging plus cost-gated AWS/EFS deployment automation complete; live cloud evidence awaits AWS authentication and explicit cost authorization |
 
 ## Security and data handling
 
@@ -109,9 +121,13 @@ GitHub Actions runs pytest, the optional-inclusive 33-case promotion gate, the f
 - Regular employees never receive manager-only chunks.
 - Direct write tools are absent from Maya’s model-visible loadouts.
 - A recorded, assigned human approval is required before a gated write can be released.
+- Retrieved chunks must match the application-owned ID/source/SHA-256 corpus manifest; semantic inspection and exact quarantine provide additional containment.
+- Quarantined evidence is explicitly invalidated from in-process conversation memory after corpus cleanup.
 - Answers distinguish observed facts, actions taken, recommendations, and blockers.
 
 See `SUBMISSION.md` for the deliverable index and `spec/PROJECT-DESCRIPTION.md` for the supplied project brief.
+
+The Lesson 13 boundary map, evidence limitations, offline commands, and live-resumption checklist are in [`docs/lesson13-security-homework.md`](docs/lesson13-security-homework.md). The isolated showcase includes a Security view with live blocked, allowed, and human-review probes that report the tool path and durable-state delta.
 
 ## Containers
 
@@ -122,4 +138,4 @@ curl http://127.0.0.1:18080/health/live
 curl http://127.0.0.1:18080/health/ready
 ```
 
-See `docs/deployment.md` for entry points, durability, credentials, and cloud-deployment boundaries.
+See `docs/deployment.md` for entry points, durability, credentials, cost, cleanup, and cloud-deployment boundaries. `docs/lesson14-cloud-evidence.md` is the reviewer-facing live evidence record.

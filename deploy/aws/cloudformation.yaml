@@ -1,0 +1,190 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  NovaOps Company Brain classroom deployment: one hardened EC2 host, three
+  non-root application containers, and encrypted EFS-backed business state.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+  PublicSubnetId:
+    Type: AWS::EC2::Subnet::Id
+  AllowedCidr:
+    Type: String
+    Description: Single trusted public IP in CIDR form, for example 203.0.113.8/32.
+    AllowedPattern: "^(?:[0-9]{1,3}\\.){3}[0-9]{1,3}/(?:[0-9]|[12][0-9]|3[0-2])$"
+  GitCommit:
+    Type: String
+    Description: Immutable 40-character commit SHA already present in the public repository.
+    AllowedPattern: "^[0-9a-f]{40}$"
+  RepositoryUrl:
+    Type: String
+    Default: https://github.com/eddieiskl/novaops-company-brain.git
+    AllowedPattern: "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+(?:\\.git)?$"
+  InstanceType:
+    Type: String
+    Default: t3.small
+    AllowedValues:
+      - t3.micro
+      - t3.small
+
+Resources:
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: NovaOps API access from one explicitly approved CIDR
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 18080
+          ToPort: 18080
+          CidrIp: !Ref AllowedCidr
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: novaops-company-brain
+
+  StateSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: NFS only from the NovaOps application host
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 2049
+          ToPort: 2049
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+
+  StateFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      BackupPolicy:
+        Status: ENABLED
+      Encrypted: true
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      FileSystemTags:
+        - Key: Name
+          Value: novaops-company-brain-state
+
+  StateMountTarget:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref StateFileSystem
+      SubnetId: !Ref PublicSubnetId
+      SecurityGroups:
+        - !Ref StateSecurityGroup
+
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Name
+          Value: novaops-company-brain
+
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref InstanceRole
+
+  AppInstance:
+    Type: AWS::EC2::Instance
+    DependsOn:
+      - StateMountTarget
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT20M
+    Properties:
+      ImageId: '{{resolve:ssm:/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64}}'
+      InstanceType: !Ref InstanceType
+      IamInstanceProfile: !Ref InstanceProfile
+      MetadataOptions:
+        HttpEndpoint: enabled
+        HttpTokens: required
+        HttpPutResponseHopLimit: 1
+      NetworkInterfaces:
+        - AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          DeviceIndex: "0"
+          GroupSet:
+            - !Ref AppSecurityGroup
+          SubnetId: !Ref PublicSubnetId
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            DeleteOnTermination: true
+            Encrypted: true
+            VolumeSize: 10
+            VolumeType: gp3
+      Tags:
+        - Key: Name
+          Value: novaops-company-brain
+        - Key: novaops:release-sha
+          Value: !Ref GitCommit
+      UserData:
+        Fn::Base64: !Sub |
+          #!/usr/bin/env bash
+          set -euxo pipefail
+          exec > >(tee /var/log/novaops-bootstrap.log | logger -t novaops-bootstrap -s 2>/dev/console) 2>&1
+
+          dnf install -y docker git amazon-efs-utils
+          systemctl enable --now docker
+          install -d -m 0755 /usr/local/lib/docker/cli-plugins
+          curl --fail --silent --show-error --location \
+            https://github.com/docker/compose/releases/download/v2.27.1/docker-compose-linux-x86_64 \
+            --output /usr/local/lib/docker/cli-plugins/docker-compose
+          echo 'ddc876fe2a89d5b7ea455146b0975bfe52904eecba9b192193377d6f99d69ad9  /usr/local/lib/docker/cli-plugins/docker-compose' | sha256sum --check
+          chmod 0755 /usr/local/lib/docker/cli-plugins/docker-compose
+          docker compose version
+          mkdir -p /srv/novaops/state /opt/novaops
+          mount -t efs -o tls ${StateFileSystem}:/ /srv/novaops/state
+          echo '${StateFileSystem}:/ /srv/novaops/state efs _netdev,tls 0 0' >> /etc/fstab
+
+          git clone '${RepositoryUrl}' /opt/novaops/repository
+          cd /opt/novaops/repository
+          git checkout --detach '${GitCommit}'
+
+          docker build -f Dockerfile.agent -t 'novaops-company-brain-agent:${GitCommit}' .
+          docker build -f Dockerfile.mcp -t 'novaops-company-brain-mcp:${GitCommit}' .
+          docker build -f Dockerfile.renewal -t 'novaops-company-brain-renewal:${GitCommit}' .
+          IMAGE_TAG='${GitCommit}' NOVAOPS_RELEASE_SHA='${GitCommit}' docker compose -f docker-compose.cloud.yml up -d --no-build
+
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:18080/health/ready >/dev/null; then
+              /opt/aws/bin/cfn-signal --success true --stack '${AWS::StackName}' --resource AppInstance --region '${AWS::Region}'
+              exit 0
+            fi
+            sleep 5
+          done
+
+          docker compose -f docker-compose.cloud.yml ps
+          /opt/aws/bin/cfn-signal --success false --stack '${AWS::StackName}' --resource AppInstance --region '${AWS::Region}'
+          exit 1
+
+Outputs:
+  ApiUrl:
+    Description: Restrict this URL to the approved CIDR; the classroom deployment uses HTTP.
+    Value: !Sub http://${AppInstance.PublicDnsName}:18080
+  InstanceId:
+    Value: !Ref AppInstance
+  ReleaseSha:
+    Value: !Ref GitCommit
+  StateFileSystemId:
+    Value: !Ref StateFileSystem

@@ -11,6 +11,7 @@ READ_TOOL_LOADOUTS: dict[str, tuple[str, ...]] = {
     "policy_question": ("search_evidence", "check_software_subscription"),
     "subscription_review": ("check_software_subscription", "search_evidence"),
     "access_request": (),
+    "overview": ("get_employee", "list_onboarding_tasks", "check_software_subscription"),
     "summary": (),
     "recall": (),
     "personal_device_policy": ("search_evidence",),
@@ -21,6 +22,7 @@ READ_TOOL_LOADOUTS: dict[str, tuple[str, ...]] = {
     "software_license_status": ("list_onboarding_tasks", "check_software_subscription", "search_evidence"),
     "restricted_manager_guide": ("search_evidence",),
     "laptop_status": ("list_onboarding_tasks", "check_asset_inventory", "search_evidence"),
+    "help": (),
     "unknown": (),
 }
 
@@ -49,7 +51,13 @@ def plan_turn(turn: int, text: str, caller: CallerContext) -> ContextPlan:
     if turn >= 1:
         constraints.extend(["start_date:2026-08-01", "location:Israel", "q3_saas_freeze:true"])
 
-    if "pull up her employee record" in lower:
+    if (
+        "pull up her employee record" in lower
+        or (
+            "maya" in lower
+            and any(phrase in lower for phrase in ("employee record", "employee profile", "who is", "tell me about", "when does maya", "maya start"))
+        )
+    ):
         return ContextPlan(turn, "employee_lookup", subject_employee_id=subject_employee_id, active_constraints=tuple(constraints), operational_reads=("get_employee",))
     if "rachel stein" in lower or "ticket" in lower:
         return ContextPlan(turn, "ticket_status", subject_employee_id="E010", active_constraints=tuple(constraints), operational_reads=("list_employee_tickets",))
@@ -124,18 +132,19 @@ def plan_turn(turn: int, text: str, caller: CallerContext) -> ContextPlan:
             required_evidence=("laptop_provisioning.md", "equipment_policy.md"),
             operational_reads=("list_onboarding_tasks", "check_asset_inventory"),
         )
-    if "offer letter" in lower or "day one" in lower:
+    if (
+        "offer letter" in lower
+        or "day one" in lower
+        or any(phrase in lower for phrase in ("systems does maya", "systems maya", "apps does maya", "access does maya need", "what does maya need"))
+        or (any(word in lower for word in ("systems", "apps")) and any(word in lower for word in ("need", "needs", "required")))
+    ):
         return ContextPlan(
             turn,
             "offer_letter",
             active_constraints=tuple(constraints),
             required_evidence=("maya_cohen_offer_letter.md",),
         )
-    if "checklist" in lower or "still open" in lower or "full status summary" in lower:
-        intent = "summary" if "full status summary" in lower else "onboarding_status"
-        reads = () if intent == "summary" else ("list_onboarding_tasks",)
-        return ContextPlan(turn, intent, active_constraints=tuple(constraints), operational_reads=reads)
-    if "monitor" in lower or "headset" in lower:
+    if any(word in lower for word in ("equipment", "laptop", "monitor", "headset")):
         return ContextPlan(
             turn,
             "equipment_request",
@@ -143,6 +152,20 @@ def plan_turn(turn: int, text: str, caller: CallerContext) -> ContextPlan:
             required_evidence=("equipment_policy.md", "laptop_provisioning.md"),
             operational_reads=("check_asset_inventory",),
         )
+    if (
+        "checklist" in lower
+        or "still open" in lower
+        or "full status summary" in lower
+        or any(word in lower for word in ("blocked", "blocking", "readiness", "progress"))
+        or ("onboarding" in lower and any(word in lower for word in ("status", "ready", "open", "pending")))
+        or ("maya" in lower and any(word in lower for word in ("status", "ready", "pending")))
+        or (("summary" in lower or "overview" in lower) and ("maya" in lower or "onboarding" in lower))
+    ):
+        intent = "overview" if "overview" in lower else "summary" if "summary" in lower else "onboarding_status"
+        reads = () if intent == "summary" else ("list_onboarding_tasks",)
+        if intent == "overview":
+            reads = ("get_employee", "list_onboarding_tasks", "check_software_subscription")
+        return ContextPlan(turn, intent, active_constraints=tuple(constraints), operational_reads=reads)
     if "location" in lower and "start date" in lower:
         return ContextPlan(turn, "recall", active_constraints=tuple(constraints))
     if "freeze" in lower or "finance" in lower:
@@ -151,14 +174,6 @@ def plan_turn(turn: int, text: str, caller: CallerContext) -> ContextPlan:
             "policy_question",
             active_constraints=tuple(constraints),
             required_evidence=("saas_renewal_freeze_q3.md", "webex_license_assignment.md", "webex_vendor_agreement.md"),
-            operational_reads=("check_software_subscription",),
-        )
-    if "webex seat" in lower or "seat" in lower:
-        return ContextPlan(
-            turn,
-            "subscription_review",
-            active_constraints=tuple(constraints),
-            required_evidence=("webex_license_assignment.md", "webex_vendor_agreement.md"),
             operational_reads=("check_software_subscription",),
         )
     if "file the webex access request" in lower:
@@ -170,6 +185,17 @@ def plan_turn(turn: int, text: str, caller: CallerContext) -> ContextPlan:
             operational_reads=("check_software_subscription",),
             allow_webex_handoff=True,
         )
+    if "webex" in lower or "seat" in lower or "license" in lower:
+        return ContextPlan(
+            turn,
+            "subscription_review",
+            active_constraints=tuple(constraints),
+            required_evidence=("webex_license_assignment.md", "webex_vendor_agreement.md"),
+            operational_reads=("check_software_subscription",),
+        )
+    normalized = lower.strip(" \t\n.!?")
+    if normalized in {"hello", "hi", "hey"} or any(phrase in lower for phrase in ("help me", "what can you do", "how does this work", "show me what you can do")):
+        return ContextPlan(turn, "help", subject_employee_id=caller.employee_id, active_constraints=tuple(constraints))
     return ContextPlan(turn, "unknown", subject_employee_id=caller.employee_id, active_constraints=tuple(constraints))
 
 

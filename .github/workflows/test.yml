@@ -26,6 +26,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose config --quiet
+      - run: docker compose -f docker-compose.cloud.yml config --quiet
+        env:
+          IMAGE_TAG: ${{ github.sha }}
+          NOVAOPS_RELEASE_SHA: ${{ github.sha }}
+      - run: bash -n deploy/aws/deploy.sh deploy/aws/verify.sh deploy/aws/destroy.sh
       - run: docker compose build
         env:
           IMAGE_TAG: ci-${{ github.sha }}

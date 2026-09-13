@@ -11,6 +11,7 @@ from webex import WebexAccessWorkflow, WebexCaseInput
 from webex.write_gate import RecordedApprovalWriteGate
 
 from .schemas import AgentTurnResult
+from .security import DisabledRequestGuard, GuardDecision, RequestGuard
 from .instrumentation import observe
 from .tools import GatewayEvidenceRetriever, GatewayOperations, GatewayWebexPort, LocalToolGateway, ToolGateway
 
@@ -32,7 +33,12 @@ class CompanyBrainAgent:
     owns routing, trace metadata and the write-gate boundary.
     """
 
-    def __init__(self, tool_gateway: ToolGateway | None = None, answer_port: AnswerPort | None = None) -> None:
+    def __init__(
+        self,
+        tool_gateway: ToolGateway | None = None,
+        answer_port: AnswerPort | None = None,
+        request_guard: RequestGuard | None = None,
+    ) -> None:
         self.tool_gateway = tool_gateway or LocalToolGateway()
         self.operations = GatewayOperations(self.tool_gateway)
         self.retriever = GatewayEvidenceRetriever(self.tool_gateway)
@@ -44,6 +50,7 @@ class CompanyBrainAgent:
         )
         self.webex = WebexAccessWorkflow(operations=self.operations)
         self.write_gate = RecordedApprovalWriteGate()
+        self.request_guard = request_guard or DisabledRequestGuard()
         self._threads: dict[str, _ThreadContext] = {}
 
     def handle_turn(
@@ -58,6 +65,34 @@ class CompanyBrainAgent:
         state = self._threads.setdefault(thread_id, _ThreadContext())
         state.turns = turn or (state.turns + 1)
         request_id = request_id or f"req-{uuid.uuid4().hex}"
+        with observe("input_guard", input={"characters": len(message)}) as guarding:
+            try:
+                verdict = GuardDecision.model_validate(self.request_guard.inspect(message))
+            except Exception:
+                verdict = GuardDecision(
+                    category="grey-zone",
+                    decision="review",
+                    reason="Guard unavailable or returned an invalid decision.",
+                )
+            guarding.update(output=verdict.model_dump())
+
+        if verdict.decision != "allow":
+            return AgentTurnResult(
+                request_id=request_id,
+                thread_id=thread_id,
+                turn=state.turns,
+                scope="security_boundary",
+                intent="security_guard",
+                status="blocked" if verdict.decision == "block" else "needs_human",
+                answer=(
+                    "I can't help with that request."
+                    if verdict.decision == "block"
+                    else "This request needs trusted human review before the agent can continue."
+                ),
+                caller_employee_id=caller.employee_id,
+                caller_user_group=caller.user_group,
+                guard_decision=verdict.model_dump(),
+            )
         with observe("classify", input={"newest_message": message}) as classification:
             if not state.workflow:
                 state.workflow = self._initial_workflow(message)
@@ -141,6 +176,8 @@ class CompanyBrainAgent:
                     "tool_sequence": result.tool_sequence,
                 }
             )
+
+        result.guard_decision = verdict.model_dump()
 
         with observe("answer", input={"citations": result.citations}) as answering:
             result.answer = self._ensure_cited(result.answer, result.citations)

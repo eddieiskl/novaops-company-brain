@@ -12,7 +12,7 @@ class AgentTurnResult:
     request_id: str
     thread_id: str
     turn: int
-    scope: Literal["maya_hr", "webex_ops"]
+    scope: Literal["maya_hr", "webex_ops", "security_boundary"]
     intent: str
     status: TerminalStatus
     answer: str
@@ -25,6 +25,7 @@ class AgentTurnResult:
     trace_url: str | None = None
     scores: dict[str, float] = field(default_factory=dict)
     score_comments: dict[str, str] = field(default_factory=dict)
+    guard_decision: dict[str, Any] = field(default_factory=dict)
 
     def trace_metadata(self) -> dict:
         return {
@@ -37,4 +38,5 @@ class AgentTurnResult:
             "intent": self.intent,
             "tool_sequence": self.tool_sequence,
             "status": self.status,
+            "guard_decision": self.guard_decision,
         }

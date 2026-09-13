@@ -1,0 +1,87 @@
+services:
+  state-init:
+    image: novaops-company-brain-agent:${IMAGE_TAG:?set IMAGE_TAG to the release commit}
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    user: "0:0"
+    command: ["sh", "-c", "chown -R novaops:novaops /data"]
+    volumes:
+      - type: bind
+        source: /srv/novaops/state
+        target: /data
+    restart: "no"
+
+  mcp:
+    image: novaops-company-brain-mcp:${IMAGE_TAG:?set IMAGE_TAG to the release commit}
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    environment:
+      NOVAOPS_DB_PATH: /data/novaops.sqlite3
+      NOVAOPS_MCP_HOST: 0.0.0.0
+    volumes:
+      - type: bind
+        source: /srv/novaops/state
+        target: /data
+    depends_on:
+      state-init:
+        condition: service_completed_successfully
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  agent-api:
+    image: novaops-company-brain-agent:${IMAGE_TAG:?set IMAGE_TAG to the release commit}
+    build:
+      context: .
+      dockerfile: Dockerfile.agent
+    environment:
+      NOVAOPS_DB_PATH: /data/novaops.sqlite3
+      NOVAOPS_TOOL_MODE: mcp
+      NOVAOPS_MCP_URL: http://mcp:9880/mcp
+      NOVAOPS_ANSWER_MODE: deterministic
+      NOVAOPS_RELEASE_SHA: ${NOVAOPS_RELEASE_SHA:?set NOVAOPS_RELEASE_SHA}
+    volumes:
+      - type: bind
+        source: /srv/novaops/state
+        target: /data
+    ports:
+      - "18080:8080"
+    depends_on:
+      mcp:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  renewal-worker:
+    image: novaops-company-brain-renewal:${IMAGE_TAG:?set IMAGE_TAG to the release commit}
+    build:
+      context: .
+      dockerfile: Dockerfile.renewal
+    environment:
+      NOVAOPS_DB_PATH: /data/novaops.sqlite3
+      NOVAOPS_ANSWER_MODE: deterministic
+      NOVAOPS_AS_OF: "2026-07-01"
+    volumes:
+      - type: bind
+        source: /srv/novaops/state
+        target: /data
+    depends_on:
+      state-init:
+        condition: service_completed_successfully
+      mcp:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped

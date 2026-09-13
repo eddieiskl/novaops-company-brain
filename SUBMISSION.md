@@ -35,7 +35,7 @@ and it is how every trace gets found.
 | ------------------------------- | -------- | -------- |
 | Lesson 12 — loop engineering     | yes | bounded binding-score improvement loop in `evals/IMPROVEMENT_REPORT.md` |
 | Lesson 13 — attack and guardrail extension | yes | focused suite in `evals/run_guardrail_attacks.py` |
-| Lesson 14 — packaging and deploy | partial | three non-root images and Compose verified locally; cloud resources not provisioned |
+| Lesson 14 — packaging and deploy | launch-ready | three non-root images, hardened cloud Compose, encrypted EFS state, immutable-SHA verification, cost-gated CloudFormation, and stack cleanup; live AWS evidence pending authorization |
 
 ## 4. Durable-behavior evidence
 
@@ -115,7 +115,10 @@ blank if you did not run it.
 
 All four workflows are implemented. Vendor produces schema-validated extractions; Renewal persists
 its schedule, approval, provider proposal, outbox, update, audit, and notification state and is
-replay-safe across restarts. Lesson 12 and the focused Lesson 13 extension are documented. Lesson 14
-packaging was built and exercised locally across the API, MCP, and worker images; no cloud resources
-were provisioned without explicit cost authorization. Live evaluations use Bedrock Nova 2 Lite;
+replay-safe across restarts. Lesson 12 and the Lesson 13 extension are documented, including typed
+input decisions, independent authorization, application-owned retrieval provenance, semantic
+poison containment, exact cleanup, and memory invalidation. Lesson 14
+packaging was built and exercised locally across the API, MCP, and worker images; a cost-gated
+AWS/EFS deployment and verification path is committed, but no cloud resources were provisioned
+without explicit cost authorization. Live evaluations use Bedrock Nova 2 Lite;
 deterministic fallbacks remain available for repeatable local safety tests.

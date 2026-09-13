@@ -61,6 +61,10 @@ class VendorExtractionResponse(StrictModel):
     result: dict[str, Any]
 
 
+class ReleaseResponse(StrictModel):
+    release_sha: str = Field(pattern=r"^[0-9a-f]{40}$")
+
+
 def _company_brain():
     global _agent
     if _agent is None:
@@ -72,6 +76,15 @@ def _company_brain():
 def liveness() -> dict[str, str]:
     """Process-only health check; never calls a model or dependency."""
     return {"status": "ok"}
+
+
+@app.get("/health/version", response_model=ReleaseResponse)
+def version() -> ReleaseResponse:
+    """Expose the immutable release identity without touching a model or dependency."""
+    release_sha = os.getenv("NOVAOPS_RELEASE_SHA", "0" * 40).strip().lower()
+    if len(release_sha) != 40 or any(char not in "0123456789abcdef" for char in release_sha):
+        raise HTTPException(status_code=503, detail="release identity unavailable")
+    return ReleaseResponse(release_sha=release_sha)
 
 
 @app.get("/health/ready")

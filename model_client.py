@@ -24,6 +24,7 @@ class BedrockModelClient:
         self.region = region or os.getenv("AWS_REGION", "us-east-1")
         self.max_tokens = max_tokens
         self.temperature = temperature
+        self.last_usage: dict[str, int] = {}
 
     @property
     def client(self):
@@ -46,6 +47,7 @@ class BedrockModelClient:
         if system:
             request["system"] = [{"text": system}]
         response = self.client.converse(**request)
+        self._capture_usage(response)
         blocks = response.get("output", {}).get("message", {}).get("content", [])
         text = "".join(block.get("text", "") for block in blocks if isinstance(block, dict)).strip()
         if not text:
@@ -86,9 +88,18 @@ class BedrockModelClient:
         if system:
             request["system"] = [{"text": system}]
         response = self.client.converse(**request)
+        self._capture_usage(response)
         blocks = response.get("output", {}).get("message", {}).get("content", [])
         for block in blocks:
             tool_use = block.get("toolUse") if isinstance(block, dict) else None
             if tool_use and tool_use.get("name") == tool_name and isinstance(tool_use.get("input"), dict):
                 return tool_use["input"]
         raise RuntimeError(f"Bedrock returned no forced {tool_name!r} tool input.")
+
+    def _capture_usage(self, response: dict[str, Any]) -> None:
+        usage = response.get("usage", {})
+        self.last_usage = {
+            str(key): int(value)
+            for key, value in usage.items()
+            if isinstance(value, int) and not isinstance(value, bool)
+        }

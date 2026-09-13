@@ -274,15 +274,6 @@ class OpenSearchEvidenceRetriever(InMemoryEvidenceRetriever):
             {"terms": {"audience": self._allowed_audiences(caller)}},
             self._subject_filter(caller, plan),
         ]
-        if plan.required_evidence:
-            filters.append(
-                {
-                    "bool": {
-                        "should": [{"term": {"source_path.keyword": source}} for source in plan.required_evidence],
-                        "minimum_should_match": 0,
-                    }
-                }
-            )
 
         return {
             "size": wide_limit,

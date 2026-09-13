@@ -79,6 +79,7 @@ def test_opensearch_query_has_hard_audience_and_subject_filters() -> None:
         for item in filters
         if "bool" in item and "should" in item["bool"]
     )
+    assert not any("source_path.keyword" in str(item) for item in filters)
 
 
 def test_opensearch_denies_unauthorized_caller_before_search() -> None:

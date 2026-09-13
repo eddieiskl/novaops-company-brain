@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Maya Onboarding · NovaOps Company Brain</title>
+    <link rel="stylesheet" href="/styles.css?v=20260906">
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="rail">
+        <img class="mark" src="/maya-mark.svg" alt="">
+        <div>
+          <p class="eyebrow">NovaOps</p>
+          <h1>Maya Onboarding</h1>
+        </div>
+        <dl class="session">
+          <div><dt>Caller</dt><dd>E004 / UG_HR</dd></div>
+          <div><dt>Subject</dt><dd>E001 / Maya Cohen</dd></div>
+          <div><dt>Thread</dt><dd id="threadLabel">maya-ui-session</dd></div>
+        </dl>
+        <section class="panel runtime-panel">
+          <div class="runtime-head">
+            <h2>Runtime</h2>
+            <span class="runtime-mode-label">Deterministic demo</span>
+          </div>
+          <div id="retrieverDetail" class="runtime-detail">Local memory</div>
+        </section>
+        <section class="panel">
+          <h2>Blocked</h2>
+          <ul id="blockedList"></ul>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <nav class="tabs" aria-label="Views">
+          <button id="dashboardTab" class="tab active" type="button">Dashboard</button>
+          <button id="chatTab" class="tab" type="button">Chat</button>
+        </nav>
+
+        <section id="dashboardView" class="dashboard">
+          <header class="dashboard-head">
+            <div>
+              <p class="eyebrow">Onboarding Readiness</p>
+              <h2 id="dashboardTitle">Maya Cohen</h2>
+            </div>
+            <button id="refreshDashboard" class="ghost" type="button">Refresh</button>
+          </header>
+          <div id="metricGrid" class="metrics"></div>
+          <section class="board">
+            <div><h3>Systems</h3><div id="dashboardSystems" class="compact-list"></div></div>
+            <div><h3>Equipment</h3><div id="dashboardEquipment" class="compact-list"></div></div>
+            <div><h3>Policy</h3><div id="dashboardPolicy" class="compact-list"></div></div>
+          </section>
+          <section class="timeline-panel">
+            <h3>Turn Trace</h3>
+            <div id="turnTrace" class="turn-trace"></div>
+          </section>
+        </section>
+
+        <section id="chatView" class="chat hidden">
+          <div id="messages" class="messages" aria-live="polite"></div>
+          <form id="chatForm" class="composer">
+            <input id="messageInput" name="message" autocomplete="off" placeholder="Ask about Maya's onboarding">
+            <button type="submit" aria-label="Send"><span aria-hidden="true">Send</span></button>
+          </form>
+        </section>
+      </section>
+
+      <aside class="inspector">
+        <section><h2>Checklist</h2><div id="checklist" class="checklist"></div></section>
+        <section><h2>Evidence</h2><ol id="evidenceList"></ol></section>
+      </aside>
+    </main>
+    <script src="/app.js?v=20260913"></script>
+  </body>
+</html>

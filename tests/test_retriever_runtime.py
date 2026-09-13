@@ -28,6 +28,8 @@ def test_retriever_runtime_defaults_to_memory(monkeypatch) -> None:
     assert status.mode == "memory"
     assert status.answer_mode == "deterministic"
     assert status.webex_mode == "fake"
+    assert status.retrieval_security_mode == "provenance"
+    assert "source manifest" in status.retrieval_security_detail
     assert "in-memory" in status.detail
 
 
@@ -44,6 +46,9 @@ def test_retriever_runtime_can_toggle_opensearch_with_factory() -> None:
 
 def test_env_opensearch_builder_requires_url(monkeypatch) -> None:
     monkeypatch.delenv("MAYA_OPENSEARCH_URL", raising=False)
+    monkeypatch.delenv("OPENSEARCH_ENDPOINT", raising=False)
+    monkeypatch.delenv("MAYA_OPENSEARCH_COLLECTION", raising=False)
+    monkeypatch.delenv("OPENSEARCH_COLLECTION", raising=False)
 
     try:
         build_opensearch_retriever_from_env()
@@ -74,3 +79,11 @@ def test_runtime_model_answer_mode_uses_lazy_bedrock_configuration(monkeypatch) 
 
     assert runtime.status().answer_mode == "model"
     assert "Bedrock Converse" in runtime.status().answer_detail
+
+
+def test_runtime_can_disable_retrieval_security_only_for_boundary_testing(monkeypatch) -> None:
+    monkeypatch.setenv("MAYA_RETRIEVAL_SECURITY", "off")
+    runtime = MayaRuntime()
+
+    assert runtime.retriever.__class__ is InMemoryEvidenceRetriever
+    assert "disabled" in runtime.status().retrieval_security_detail

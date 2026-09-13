@@ -101,7 +101,7 @@ def test_unknown_request_does_not_default_to_mayas_record() -> None:
     assert result.intent == "unknown"
     assert result.status == "needs_human"
     assert result.tool_sequence == []
-    assert "clearer current request" in result.answer
+    assert "Maya's onboarding record" in result.answer
     assert "E001" not in result.answer
 
 

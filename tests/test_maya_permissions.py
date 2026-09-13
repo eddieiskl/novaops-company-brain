@@ -9,6 +9,7 @@ sys.path.insert(0, str(ROOT))
 from maya.policy import validate_tool_matrix
 from maya.retrieval import InMemoryEvidenceRetriever, PermissionDenied
 from maya.schemas import CallerContext, ContextPlan
+from company_brain import CompanyBrainAgent
 
 
 def test_hr_can_retrieve_maya_evidence() -> None:
@@ -53,3 +54,15 @@ def test_regular_employee_cannot_retrieve_maya_evidence_or_infer_facts() -> None
 
 def test_tool_matrix_exposes_expected_reads_and_no_direct_write() -> None:
     assert validate_tool_matrix() == []
+
+
+def test_cross_employee_denial_returns_safely_instead_of_crashing() -> None:
+    result = CompanyBrainAgent().handle_turn(
+        "cross-employee-denial",
+        CallerContext("E010", "UG_REGULAR"),
+        "What does Maya's offer letter say?",
+    )
+
+    assert result.answer == "Access denied."
+    assert any("not authorized" in error for error in result.payload.errors)
+    assert not result.payload.retrieved

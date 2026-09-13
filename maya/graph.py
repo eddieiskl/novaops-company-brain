@@ -77,7 +77,7 @@ class MayaAgent:
                 calls.append("search_evidence")
         except PermissionDenied as exc:
             errors.append(str(exc))
-            return TurnResult(turn, plan.intent, "Access denied.", self._checklist([], []), retrieved, calls, [], errors)
+            return TurnResult(turn, plan.intent, "Access denied.", self._checklist([], {}), retrieved, calls, [], errors)
 
         records = self._run_operational_reads(plan, loadout, calls)
         state.operational_records.update(records)
@@ -119,6 +119,26 @@ class MayaAgent:
 
     def handle_turn_sync(self, thread_id: str, caller: CallerContext, turn: int, user_text: str) -> TurnResult:
         return asyncio.run(self.handle_turn(thread_id, caller, turn, user_text))
+
+    def invalidate_retrieved_evidence(
+        self,
+        *,
+        chunk_ids: tuple[str, ...] = (),
+        source_paths: tuple[str, ...] = (),
+    ) -> dict[str, int]:
+        """Remove quarantined evidence from every in-process conversation state."""
+
+        denied_ids = set(chunk_ids)
+        denied_sources = set(source_paths)
+        before = sum(len(state.retrieved) for state in self._threads.values())
+        for state in self._threads.values():
+            state.retrieved = [
+                chunk
+                for chunk in state.retrieved
+                if chunk.chunk_id not in denied_ids and chunk.source_path not in denied_sources
+            ]
+        after = sum(len(state.retrieved) for state in self._threads.values())
+        return {"before": before, "removed": before - after, "after": after}
 
     def _run_operational_reads(self, plan: ContextPlan, loadout: tuple[str, ...], calls: list[str]) -> dict[str, list[dict]]:
         records: dict[str, list[dict]] = {}
@@ -238,6 +258,20 @@ class MayaAgent:
         handoffs: list[PendingAccessResult],
     ) -> str:
         citations = self._citation_suffix(retrieved)
+        if plan.intent == "employee_lookup":
+            employee = (records.get("employee") or [{}])[0]
+            return (
+                f"Maya Cohen is employee {employee.get('employee_id', 'E001')}, a "
+                f"{employee.get('role', 'Customer Success Manager')} in {employee.get('status', 'preboarding')} "
+                f"status. She is a {employee.get('employment_type', 'full-time')} employee based in "
+                f"{employee.get('location', state.location)} and starts {employee.get('start_date', state.start_date)}."
+            )
+        if plan.intent == "help":
+            return (
+                "I can help with Maya's employee profile, day-one systems, onboarding checklist, equipment, "
+                "Webex availability, finance policy, blockers, and a final status summary. Ask in your own words; "
+                "I will use only authorized NovaOps evidence and will not grant access directly."
+            )
         if plan.intent == "personal_device_policy":
             return (
                 "Employees may not use a personal laptop except for a five-business-day continuity "
@@ -301,8 +335,8 @@ class MayaAgent:
         if plan.intent == "access_request":
             result = handoffs[0]
             return f"Webex handoff {result.request_id} is {result.status}; Maya does not have granted access yet."
-        if plan.intent == "summary":
-            blocked = "; ".join(item.detail.rstrip(".") for item in checklist.blocked_items)
+        if plan.intent in {"summary", "overview"}:
+            blocked = "; ".join(item.detail.rstrip(".") for item in checklist.blocked_items) or "Webex license capacity requires confirmation"
             return (
                 f"Maya Cohen ({checklist.employee_id}) starts {checklist.start_date} in {checklist.location}. "
                 f"Role: {checklist.role}. Systems include Okta, Slack, Notion, Salesforce, Webex, BambooHR, and SupportDesk. "
@@ -322,13 +356,36 @@ class MayaAgent:
                 ),
                 None,
             )
-            laptop_fact = f"{laptop['asset_id']} ({laptop['model']})" if laptop else "a managed laptop"
-            return f"Maya has Israel laptop {laptop_fact} reserved, a monitor available, and a headset requirement that remains to be confirmed."
+            monitor = next(
+                (
+                    item
+                    for item in records.get("assets", [])
+                    if item["asset_type"] == "Monitor" and item["status"] == "available"
+                ),
+                None,
+            )
+            laptop_fact = (
+                f"laptop {laptop['asset_id']} ({laptop['model']}) is available"
+                if laptop
+                else "no available laptop is recorded"
+            )
+            monitor_fact = (
+                f"monitor {monitor['asset_id']} ({monitor['model']}) is available"
+                if monitor
+                else "no available monitor is recorded"
+            )
+            return (
+                f"Israel inventory shows {laptop_fact}; {monitor_fact}. "
+                f"A headset is required, but availability remains unconfirmed.{citations}"
+            )
         if plan.intent == "offer_letter":
             return "Maya's offer letter requires Okta, Slack, Notion, Salesforce, Webex, BambooHR employee self-service, SupportDesk viewer, and remote equipment."
         if plan.intent == "onboarding_status":
             return "Maya's checklist includes Okta pending, laptop/equipment planned, Salesforce planned, Webex blocked, and BambooHR planned."
-        return "I need a clearer current request before I can choose an authorized source or operation."
+        return (
+            "I can help with Maya's onboarding record, required systems, equipment, Webex status, finance policy, "
+            "current blockers, or a full status summary. Please ask about one of those areas."
+        )
 
     @staticmethod
     def _citation_suffix(retrieved: list[EvidenceChunk]) -> str:

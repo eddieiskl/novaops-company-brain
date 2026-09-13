@@ -66,7 +66,15 @@ def test_trace_contains_required_decision_and_tool_spans(monkeypatch) -> None:
     traced.flush()
 
     names = [item["name"] for item in fake.observations]
-    assert names == ["M-I-01 turn 1", "classify", "scope", "execute", "retrieve_evidence", "answer"]
+    assert names == [
+        "M-I-01 turn 1",
+        "input_guard",
+        "classify",
+        "scope",
+        "execute",
+        "retrieve_evidence",
+        "answer",
+    ]
     root = fake.observations[0]
     tool = next(item for item in fake.observations if item["name"] == "retrieve_evidence")
     assert tool["input"]["arguments"]["caller_employee_id"] == "E010"
