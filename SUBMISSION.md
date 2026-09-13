@@ -11,7 +11,7 @@ and it is how every trace gets found.
 | ------------------- | ------------------------------------------------ |
 | **Repository URL**  | `https://github.com/eddieiskl/novaops-company-brain` |
 | **Access**          | public |
-| **Commit reviewed** | `1de62c1afb804b331bf22593e2c615ce69f25063` |
+| **Commit reviewed** | `7d5f8405f6fc266cfd1ee73f3d6f73574403cf42` |
 
 ## 2. Langfuse
 
