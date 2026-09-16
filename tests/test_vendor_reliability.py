@@ -79,3 +79,15 @@ def test_http_and_queue_share_extraction_function():
     from service import api
     from vendor import runtime, worker
     assert api.extract_request is runtime.extract_request is worker.extract_request
+
+
+def test_http_reports_exhausted_model_repair_as_upstream_failure(monkeypatch):
+    from fastapi.testclient import TestClient
+    from service import api
+    def fail(*args):
+        raise VendorSchemaError('sensitive invalid model output')
+    monkeypatch.setattr(api, 'extract_request', fail)
+    response = TestClient(api.app).post('/v1/vendor/extract', json={
+        'source_id': 'a', 'source_type': 'formal_document', 'document': 'HelioDesk'})
+    assert response.status_code == 502
+    assert response.json()['detail'] == 'model_output_invalid_after_repair'

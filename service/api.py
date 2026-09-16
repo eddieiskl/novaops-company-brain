@@ -16,6 +16,7 @@ from company_brain.mcp_client import MCPToolClient
 from company_brain.tools import LocalToolGateway, RemoteMCPToolGateway
 from maya import CallerContext, ops
 from vendor.runtime import extract_request
+from vendor.reliability import VendorSchemaError
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -211,6 +212,8 @@ def vendor_extract(request: VendorExtractionRequest) -> VendorExtractionResponse
             request.source_type,
             request.document,
         )
+    except VendorSchemaError as exc:
+        raise HTTPException(status_code=502, detail="model_output_invalid_after_repair") from exc
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     return VendorExtractionResponse(status="completed", result=result.as_dict())

@@ -140,4 +140,4 @@ curl http://127.0.0.1:18080/health/ready
 
 See `docs/deployment.md` for entry points, durability, credentials, cost, cleanup, and cloud-deployment boundaries. `docs/lesson14-cloud-evidence.md` is the reviewer-facing live evidence record.
 
-The [Lesson 14 vendor extension](docs/lesson14-vendor-extension.md) adds bounded provider retries, one schema repair, and an SQS consumer sharing the HTTP extraction function. The project suite passes 117 tests; all three live vendor fixtures passed the expected 0/1/2 missing-field checks.
+The [Lesson 14 vendor extension](docs/lesson14-vendor-extension.md) adds bounded provider retries, one schema repair, and an SQS consumer sharing the HTTP extraction function. The project suite passes 118 tests; all three live vendor fixtures passed the expected 0/1/2 missing-field checks.
