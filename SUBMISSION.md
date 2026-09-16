@@ -127,3 +127,5 @@ Nova 2 Lite; deterministic fallbacks remain available for repeatable local safet
 ## Lesson 14 vendor follow-up
 
 Optional Task 2 is implemented and verified: bounded direct-provider retries, one schema repair, and a persistent-cache SQS consumer that publishes before acknowledging input. HTTP and queue delivery share the extraction function. All 117 project tests and the live 0/1/2 missing-field fixture checks pass. See [vendor evidence](docs/lesson14-vendor-extension.md).
+
+The Lesson 14 follow-up is published for review in [PR #1](https://github.com/eddieiskl/novaops-company-brain/pull/1), branch `codex/lesson14-serving-vendor`. The historical reviewed submission SHA above remains unchanged until the new work is merged.

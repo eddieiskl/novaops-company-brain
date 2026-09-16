@@ -21,3 +21,5 @@ The consumer sends the result before deleting the input. Failure leaves the inpu
 ## Verification
 
 The complete project suite passed 117 tests after this extension. New tests cover transient/permanent retry classification, bounded jitter, original exception identity, one repair and loud exhaustion, durable cached redelivery, source-ID conflicts, publication-before-acknowledgement, and the shared HTTP/queue extraction boundary. Live fixture results are recorded separately in `deploy/lesson14/evidence/vendor-live-verification.json`.
+
+A live SQS + Bedrock smoke test also passed all three cases through `VendorQueueConsumer.run_once()` using the default runtime construction. Each produced the expected 0/1/2 missing-field result and completed result publication followed by input acknowledgement. Both temporary queues were deleted in the test's cleanup block. Local evidence: `deploy/lesson14/evidence/vendor-live-queue-verification.json` (excluded from Git along with raw runtime evidence).
