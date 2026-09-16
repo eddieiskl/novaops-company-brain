@@ -8,7 +8,7 @@ Model output is normalized and schema-validated locally. Invalid output gets exa
 
 ## Queue adapter
 
-Set `NOVAOPS_MODEL_BACKEND=bedrock` (or deterministic for fixture tests), `VENDOR_INPUT_QUEUE_URL`, `VENDOR_RESULT_QUEUE_URL`, and `VENDOR_CACHE_PATH`, then run:
+Set `NOVAOPS_ANSWER_MODE=bedrock` (or deterministic for fixture tests), `VENDOR_INPUT_QUEUE_URL`, `VENDOR_RESULT_QUEUE_URL`, and `VENDOR_CACHE_PATH`, then run:
 
 ```sh
 python -m vendor.worker

@@ -7,6 +7,8 @@ import hashlib
 import json
 import os
 import sqlite3
+import time
+from pathlib import Path
 from vendor.runtime import extract_request
 
 class VendorQueueConsumer:
@@ -43,14 +45,17 @@ class VendorQueueConsumer:
 
 def main():
     import boto3
+    cache_path = Path(os.environ.get('VENDOR_CACHE_PATH', '.state/vendor-results.sqlite3'))
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
     worker = VendorQueueConsumer(boto3.client('sqs'), os.environ['VENDOR_INPUT_QUEUE_URL'],
                                 os.environ['VENDOR_RESULT_QUEUE_URL'],
-                                os.environ.get('VENDOR_CACHE_PATH', 'vendor-results.sqlite3'))
+                                cache_path)
     while True:
         try:
             worker.run_once()
         except Exception as error:
             print(f'vendor message retained: {type(error).__name__}', flush=True)
+            time.sleep(1)
 
 if __name__ == '__main__':
     main()
