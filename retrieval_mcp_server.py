@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 import os
 import sys
+from threading import Lock
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
@@ -15,6 +16,7 @@ from webex.write_gate import RecordedApprovalWriteGate
 
 retriever = InMemoryEvidenceRetriever()
 DOCUMENTS_ROOT = ROOT / "novaops-enterprise-agent-dataset" / "documents"
+_approval_lock = Lock()
 
 
 def list_evidence_collections() -> list[str]:
@@ -166,6 +168,29 @@ def resume_access_handoff(handoff_id: str) -> dict:
     }
 
 
+def approve_and_resume_handoff(handoff_id: str, approval_id: str, decision: str,
+                               actor_employee_id: str, reason: str) -> dict:
+    """Trusted event adapter; never offered to the model's tool loadout."""
+    with _approval_lock:
+        handoff = ops.get_access_handoff(handoff_id)
+        if handoff is None:
+            return {"error_code": "not_found"}
+        approval = next((a for a in ops.list_approvals(handoff_id)
+                         if a["approval_id"] == approval_id), None)
+        if approval is None or decision not in {"approved", "rejected"}:
+            return {"error_code": "invalid_scope"}
+        if approval["approver_id"] != actor_employee_id:
+            return {"error_code": "forbidden"}
+        if approval["status"] in {"approved", "rejected"} and approval["status"] != decision:
+            return {"error_code": "conflict"}
+        if approval["status"] != decision:
+            ops.record_approval_decision(approval_id, decision, actor_employee_id, reason)
+        result = resume_access_handoff(handoff_id)
+        request = result["access_request"]
+        status = "blocked" if decision == "rejected" or (request and request["status"] == "blocked") else "pending"
+        return {"handoff_id": handoff_id, "status": status, **result}
+
+
 def build_server():
     from mcp.server.fastmcp import FastMCP
 
@@ -189,6 +214,7 @@ def build_server():
         record_approval_decision,
         prepare_access_handoff,
         resume_access_handoff,
+        approve_and_resume_handoff,
     ):
         mcp.tool()(tool)
     return mcp

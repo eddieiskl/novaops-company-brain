@@ -24,11 +24,14 @@ class RecordedApprovalWriteGate:
     an action should be proposed, but it cannot authorize a write.
     """
 
+    def __init__(self, operations=ops) -> None:
+        self.operations = operations
+
     def evaluate(self, tool_name: str, request_id: str) -> WriteGateDecision:
         if tool_name not in WRITE_TOOLS:
             return WriteGateDecision(False, tool_name, request_id, (), "Tool is not an allow-listed write.")
 
-        approvals = ops.list_approvals(request_id)
+        approvals = self.operations.list_approvals(request_id)
         approval_ids = tuple(item["approval_id"] for item in approvals)
         if not approvals:
             return WriteGateDecision(False, tool_name, request_id, (), "No recorded approval exists.")

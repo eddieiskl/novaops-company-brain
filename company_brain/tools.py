@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-import retrieval_mcp_server as local_server
 from maya.schemas import CallerContext, ContextPlan, EvidenceChunk
 from maya.schemas import PendingAccessResult, WebexHandoff
 
@@ -18,24 +17,27 @@ class ToolGateway(Protocol):
 class LocalToolGateway:
     """In-process MCP-server adapter used only for deterministic tests."""
 
-    _TOOLS = {
-        name: getattr(local_server, name)
-        for name in (
-            "retrieve_evidence",
-            "get_employee",
-            "list_direct_reports",
-            "list_onboarding_tasks",
-            "check_asset_inventory",
-            "check_software_subscription",
-            "inspect_software_seat_assignments",
-            "list_employee_tickets",
-            "list_access_requests",
-            "list_approvals",
-            "record_approval_decision",
-            "prepare_access_handoff",
-            "resume_access_handoff",
-        )
-    }
+    _TOOL_NAMES = (
+        "retrieve_evidence",
+        "get_employee",
+        "list_direct_reports",
+        "list_onboarding_tasks",
+        "check_asset_inventory",
+        "check_software_subscription",
+        "inspect_software_seat_assignments",
+        "list_employee_tickets",
+        "list_access_requests",
+        "list_approvals",
+        "record_approval_decision",
+        "prepare_access_handoff",
+        "resume_access_handoff",
+        "approve_and_resume_handoff",
+    )
+
+    def __init__(self) -> None:
+        # Only the local adapter loads corpora; the remote API image has no dataset.
+        import retrieval_mcp_server as local_server
+        self._TOOLS = {name: getattr(local_server, name) for name in self._TOOL_NAMES}
 
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> Any:
         arguments = arguments or {}

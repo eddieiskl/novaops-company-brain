@@ -1,49 +1,45 @@
-# Lesson 14 cloud evidence
+# Lesson 14 cloud evidence — verified and cleaned up
 
-This record is filled from machine-checked deployment output; blank values mean cloud provisioning has not yet been authorized or executed.
+Recorded 2026-09-16 for the user-authorized Maya/Webex gateway extension.
 
-| Evidence | Value |
+| Evidence | Result |
 | --- | --- |
-| Stack | pending authorized deployment |
-| Region | `us-east-1` |
-| Public API URL | pending authorized deployment |
-| Release commit | pending final public release |
-| EC2 instance | pending authorized deployment |
-| External state | encrypted EFS, pending authorized deployment |
-| Verification | local deployment assets pass; live cloud verification pending |
+| Region / stack | us-east-1 / `novaops-l14-project-df29b7` |
+| Source snapshot | `53603c4c0ebc5cd16585931a83f112e1b512bb89` (local, not published) |
+| Automated project tests | 108 passed |
+| Local container checks | 22 passed |
+| Live cloud integration checks | 16 passed |
+| Automatic stop | Scheduler actually set application desiredCount to zero |
+| Cleanup | 20 checks passed; no active exercise compute or EFS remains |
+| Public endpoint | Removed with the test deployment |
 
-## Local promotion evidence — 2026-09-13
+The deployed path uses two ECS services with distinct IAM task roles. API+MCP has
+no model invocation permission; LiteLLM owns the approved model grant. Only MCP
+mounts encrypted EFS using TLS and IAM authorization. Cloud Map/Service Connect
+provides internal gateway discovery. All workload containers run non-root, and
+registry manifests match the exact tested local image configurations.
 
-- Full test suite: `92 passed`.
-- Optional-inclusive submission evaluation: `33/33`, with deterministic and binding gates passing.
-- Cloud Compose render: valid with a 40-character image/release SHA.
-- Shell deploy, verify, and cleanup scripts: `bash -n` and ShellCheck clean.
-- Rebuilt images: agent `sha256:b5c7c4f4f785a2f8ee422dbfc336da7819370fa90b7accfe5605768910ef4ac3`, MCP `sha256:e11d32d89b81ab56165239b1b55ed3ab5dbc70baa3040742b6c0b6f2afecf331`, renewal `sha256:13a6accf7ae82213f23e97aec54327196d0c20c8c9610d306011545616368bb8`.
-- Compose runtime: all three services reached `healthy`; API liveness returned `ok`, readiness returned `ready` with `tool_mode=mcp`, and Docker reported user `novaops` for every application container.
-- Cleanup: containers and network removed; the local named state volume was preserved.
+The live test proved a cited model answer, request validation, HTTP 202 for a
+pending handoff, authenticated approval, persistence across application-task
+replacement, duplicate approval returning the same request, and a conflicting
+decision returning 409. Approval did not manufacture a Webex seat: the resumed
+request remained blocked by the subscription capacity limit.
 
-## What the deployment proves
+The test caught a completed/pending response bug; `service/api.py` now maps durable
+pending handoffs to HTTP 202, covered by `test_real_pending_handoff_is_http_202`.
+Deployment setup also now waits for gateway steady state before starting the app.
 
-- Thin Pydantic request models reject blank, oversized, malformed, and extra input before a workflow runs.
-- API, MCP, and renewal event planes use separate container entry points.
-- All three application images run as `novaops`, with read-only roots and `no-new-privileges` in cloud Compose.
-- Liveness is process-only; readiness checks the MCP dependency without calling a model.
-- The exact 40-character release SHA is exposed by `/health/version` and checked by `deploy/aws/verify.sh`.
-- Business, approval, outbox, and idempotency state lives on encrypted EFS mounted outside the containers.
-- No application container receives AWS model credentials.
+See [deployment instructions and limits](../deploy/lesson14/README.md). Detailed
+machine evidence is retained locally under `deploy/lesson14/evidence/`, including
+source bundle, image manifest, cloud verification, IAM policies, ingress rules,
+automatic-stop proof and final cleanup verification. Secrets are excluded.
 
-## Verification commands
+Ordinary chat memory remains process-local; durable approvals/business state is
+external. This run uses a trusted caller envelope, one MCP writer, and tracing
+disabled; it does not claim production identity, multi-writer SQLite, or new
+Langfuse API-export verification. Existing evaluation trace evidence is unchanged.
 
-```bash
-IMAGE_TAG="$(git rev-parse HEAD)" \
-NOVAOPS_RELEASE_SHA="$(git rev-parse HEAD)" \
-  docker compose -f docker-compose.cloud.yml config --quiet
-
-python -m pytest -q tests/test_packaging.py tests/test_service_api.py
-
-deploy/aws/verify.sh "http://DEPLOYED_HOST:18080" "$(git rev-parse HEAD)"
-```
-
-## Cost and cleanup boundary
-
-The deployer refuses to run without `--approve-costs` and a single-host `/32` ingress CIDR. The current default is budgeted at approximately USD 20/month (about USD 2 for three days) before variable charges. After the instructor no longer needs the endpoint, `deploy/aws/destroy.sh --confirm-delete novaops-company-brain` removes the entire stack and waits for completion.
+The [earlier EC2 preparation record](lesson14-ec2-preparation-2026-09-13.md) is
+historical design/local-test evidence. That alternative EC2/renewal topology was
+not deployed in this ECS gateway exercise. The public submission commit was not
+changed or published by this run.

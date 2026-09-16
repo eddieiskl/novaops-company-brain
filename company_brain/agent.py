@@ -49,7 +49,7 @@ class CompanyBrainAgent:
             operations=self.operations,
         )
         self.webex = WebexAccessWorkflow(operations=self.operations)
-        self.write_gate = RecordedApprovalWriteGate()
+        self.write_gate = RecordedApprovalWriteGate(self.operations)
         self.request_guard = request_guard or DisabledRequestGuard()
         self._threads: dict[str, _ThreadContext] = {}
 

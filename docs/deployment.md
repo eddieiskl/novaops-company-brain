@@ -1,5 +1,10 @@
 # Packaging and deployment
 
+The verified Lesson 14 ECS/LiteLLM path is documented in
+[`deploy/lesson14/README.md`](../deploy/lesson14/README.md), with
+[live evidence and cleanup](lesson14-cloud-evidence.md). The sections below describe
+the original deterministic Compose and alternative EC2/renewal deployment.
+
 The project has three physical entry points:
 
 - `agent-api`: validated request plane on container port 8080 (host port 18080 in Compose).

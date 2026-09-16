@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from model_client import BedrockModelClient
+from model_client import get_model
 
 from .extractor import VendorExtractor
 
@@ -51,8 +51,13 @@ class DeterministicVendorModel:
 
 def build_vendor_extractor_from_env() -> VendorExtractor:
     mode = os.getenv("NOVAOPS_ANSWER_MODE", "deterministic").strip().lower()
-    if mode == "bedrock":
-        return VendorExtractor(BedrockModelClient())
+    if mode in {"bedrock", "gateway"}:
+        return VendorExtractor(get_model())
     if mode == "deterministic":
         return VendorExtractor(DeterministicVendorModel())
-    raise ValueError("NOVAOPS_ANSWER_MODE must be 'deterministic' or 'bedrock'.")
+    raise ValueError("NOVAOPS_ANSWER_MODE must be 'deterministic', 'bedrock', or 'gateway'.")
+
+
+def extract_request(source_id: str, source_type: str, document: str):
+    """Shared HTTP and queue extraction boundary."""
+    return build_vendor_extractor_from_env().extract(source_id, source_type, document)
