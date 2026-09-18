@@ -11,3 +11,6 @@ evals
 spec
 dist
 build
+**/*.env
+deploy/lesson14/.runtime
+deploy/lesson14/evidence

@@ -113,7 +113,7 @@ GitHub Actions runs pytest, the optional-inclusive 33-case promotion gate, the f
 | Vendor workflow | Complete; three schema-valid 0/1/2-gap extractions |
 | Renewal workflow | Complete; three restart-safe, replay-safe outcomes |
 | Lesson 13 security homework | Complete; 16-case live semantic guard, independent enforcement proof, project-specific OpenSearch poisoning/recovery evidence, and application-owned retrieval provenance |
-| Lesson 14 packaging/deployment | Packaging plus cost-gated AWS/EFS deployment automation complete; live cloud evidence awaits AWS authentication and explicit cost authorization |
+| Lesson 14 packaging/deployment | ECS/LiteLLM/EFS verified: 108 tests, 22 local checks, 16 cloud checks, task-replacement persistence and automatic stop; cleanup verified. See `docs/lesson14-cloud-evidence.md`. |
 
 ## Security and data handling
 
@@ -139,3 +139,5 @@ curl http://127.0.0.1:18080/health/ready
 ```
 
 See `docs/deployment.md` for entry points, durability, credentials, cost, cleanup, and cloud-deployment boundaries. `docs/lesson14-cloud-evidence.md` is the reviewer-facing live evidence record.
+
+The [Lesson 14 vendor extension](docs/lesson14-vendor-extension.md) adds bounded provider retries, one schema repair, and an SQS consumer sharing the HTTP extraction function. The project suite passes 118 tests; all three live vendor fixtures passed the expected 0/1/2 missing-field checks.

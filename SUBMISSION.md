@@ -35,7 +35,7 @@ and it is how every trace gets found.
 | ------------------------------- | -------- | -------- |
 | Lesson 12 — loop engineering     | yes | bounded binding-score improvement loop in `evals/IMPROVEMENT_REPORT.md` |
 | Lesson 13 — attack and guardrail extension | yes | focused suite in `evals/run_guardrail_attacks.py` |
-| Lesson 14 — packaging and deploy | launch-ready | three non-root images, hardened cloud Compose, encrypted EFS state, immutable-SHA verification, cost-gated CloudFormation, and stack cleanup; live AWS evidence pending authorization |
+| Lesson 14 — packaging and deploy | yes | ECS/LiteLLM/EFS: 16 cloud checks, durable approval restart/replay, automatic stop, and verified cleanup. See `docs/lesson14-cloud-evidence.md`. |
 
 ## 4. Durable-behavior evidence
 
@@ -118,7 +118,16 @@ its schedule, approval, provider proposal, outbox, update, audit, and notificati
 replay-safe across restarts. Lesson 12 and the Lesson 13 extension are documented, including typed
 input decisions, independent authorization, application-owned retrieval provenance, semantic
 poison containment, exact cleanup, and memory invalidation. Lesson 14
-packaging was built and exercised locally across the API, MCP, and worker images; a cost-gated
-AWS/EFS deployment and verification path is committed, but no cloud resources were provisioned
-without explicit cost authorization. Live evaluations use Bedrock Nova 2 Lite;
-deterministic fallbacks remain available for repeatable local safety tests.
+gateway serving was verified locally and on ECS with encrypted EFS, separate model IAM,
+durable approval restart/replay, and a working automatic stop. Cloud cleanup is verified.
+The tested local source snapshot is recorded in `docs/lesson14-cloud-evidence.md`;
+this run did not publish a new public submission commit. Live evaluations use Bedrock
+Nova 2 Lite; deterministic fallbacks remain available for repeatable local safety tests.
+
+## Lesson 14 vendor follow-up
+
+Optional Task 2 is implemented and verified: bounded direct-provider retries, one schema repair, and a persistent-cache SQS consumer that publishes before acknowledging input. HTTP and queue delivery share the extraction function. All 118 project tests and the live 0/1/2 missing-field fixture checks pass. See [vendor evidence](docs/lesson14-vendor-extension.md).
+
+The Lesson 14 follow-up is published for review in [PR #1](https://github.com/eddieiskl/novaops-company-brain/pull/1), branch `codex/lesson14-serving-vendor`. The historical reviewed submission SHA above remains unchanged until the new work is merged.
+
+The separate [RDS-backed Lesson 14 course demo](docs/lesson14-rds-demo.md) also passed nine live checks, including cross-worker conversation persistence. All 32 resource-cleanup checks passed. The automatic-stop watcher was interrupted by connectivity loss, so its complete timing test is not claimed.

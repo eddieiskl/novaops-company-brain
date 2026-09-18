@@ -5,7 +5,11 @@ import importlib.util
 from pathlib import Path
 from typing import Protocol
 
-from model_client import BedrockModelClient
+from model_client import get_model
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from model_client import BedrockModelClient
 
 from .schemas import PendingAccessResult, WebexHandoff
 
@@ -41,7 +45,7 @@ class BedrockAnswerPort:
     """Production answer port using Nova 2 Lite through Bedrock Converse."""
 
     def __init__(self, model: BedrockModelClient | None = None) -> None:
-        self.model = model or BedrockModelClient()
+        self.model = model or get_model()
 
     async def answer(self, prompt: str) -> str:
         from company_brain.instrumentation import observe

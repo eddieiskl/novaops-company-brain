@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from model_client import BedrockModelClient
+from model_client import get_model
 
 from .extractor import ProviderDecisionExtractor
 from .workflow import build_renewal_workflow
@@ -44,7 +44,7 @@ class DeterministicProviderModel:
 
 def build_renewal_workflow_from_env(*, replies: dict[str, str] | None = None):
     mode = os.getenv("NOVAOPS_ANSWER_MODE", "deterministic").strip().lower()
-    model = BedrockModelClient() if mode == "bedrock" else DeterministicProviderModel()
-    if mode not in {"deterministic", "bedrock"}:
-        raise ValueError("NOVAOPS_ANSWER_MODE must be 'deterministic' or 'bedrock'.")
+    model = get_model() if mode in {"bedrock", "gateway"} else DeterministicProviderModel()
+    if mode not in {"deterministic", "bedrock", "gateway"}:
+        raise ValueError("NOVAOPS_ANSWER_MODE must be 'deterministic', 'bedrock', or 'gateway'.")
     return build_renewal_workflow(extractor=ProviderDecisionExtractor(model=model), replies=replies)

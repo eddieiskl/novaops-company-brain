@@ -12,3 +12,5 @@ htmlcov/
 *.egg-info/
 build/
 dist/
+deploy/lesson14/.runtime/
+deploy/lesson14/evidence/

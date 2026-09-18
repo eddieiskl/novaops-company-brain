@@ -1,0 +1,11 @@
+model_list:
+  - model_name: novaops-approved
+    litellm_params:
+      model: bedrock/converse/us.amazon.nova-2-lite-v1:0
+      aws_region_name: os.environ/AWS_REGION
+litellm_settings:
+  drop_params: true
+  num_retries: 1
+  request_timeout: 45
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY

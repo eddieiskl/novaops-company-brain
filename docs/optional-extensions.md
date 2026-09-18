@@ -155,17 +155,17 @@ It exposes:
 - `list_evidence_collections()`
 - `retrieve_evidence(query, caller_employee_id, caller_user_group, subject_employee_id, intent, limit)`
 
-The server never exposes write tools and enforces caller authorization before retrieval.
+Retrieval tools enforce caller authorization. Internal approval tools are reached through the authenticated approval adapter; they are not model-visible approval authority.
 
 ## Lesson 14 Cloud Deployment
 
-The final optional stage has a cost-gated AWS implementation under `deploy/aws/` and a
-hardened `docker-compose.cloud.yml`. It provisions an exact public commit on one small EC2
-host, uses encrypted EFS for state outside the containers, restricts API ingress to one
-explicit `/32`, and gives the host only a keyless Systems Manager role. The three
-application containers are non-root and read-only and receive no model credentials.
+The gateway-backed path under `deploy/lesson14/` was exercised on ECS with encrypted
+EFS and then cleaned up. The API+MCP task and LiteLLM task use distinct roles; only
+the gateway can invoke the approved model. Cloud verification passed all 16 checks,
+including pending approval surviving task replacement and replay without a duplicate
+access request. A real scheduled automatic stop and final resource cleanup passed.
 
-`deploy/aws/verify.sh` checks cheap liveness, dependency-aware readiness, the exact release
-SHA, and one safe end-to-end agent turn. `deploy/aws/destroy.sh` deletes and waits for the
-whole stack so review resources do not keep billing. Live provisioning remains intentionally
-blocked until AWS authentication and explicit acceptance of the estimated cost.
+See `docs/lesson14-cloud-evidence.md` and `deploy/lesson14/README.md` for the exact
+source snapshot, evidence, commands and limitations. The earlier `deploy/aws/`
+EC2/renewal path remains an alternative prepared deployment, not the topology
+verified by this run. No new public submission commit was published.

@@ -14,9 +14,9 @@ def build_company_brain_from_env() -> CompanyBrainAgent:
     mode = os.getenv("NOVAOPS_TOOL_MODE", "local").strip().lower()
     answer_mode = os.getenv("NOVAOPS_ANSWER_MODE", "deterministic").strip().lower()
     guard_mode = os.getenv("NOVAOPS_GUARD_MODE", "rules")
-    answer_port = BedrockAnswerPort() if answer_mode == "bedrock" else None
-    if answer_mode not in {"deterministic", "bedrock"}:
-        raise ValueError("NOVAOPS_ANSWER_MODE must be 'deterministic' or 'bedrock'.")
+    answer_port = BedrockAnswerPort() if answer_mode in {"bedrock", "gateway"} else None
+    if answer_mode not in {"deterministic", "bedrock", "gateway"}:
+        raise ValueError("NOVAOPS_ANSWER_MODE must be 'deterministic', 'bedrock', or 'gateway'.")
     if mode == "local":
         return CompanyBrainAgent(LocalToolGateway(), answer_port=answer_port, request_guard=guard_from_mode(guard_mode))
     if mode == "mcp":

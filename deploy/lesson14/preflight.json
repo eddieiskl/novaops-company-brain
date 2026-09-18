@@ -1,0 +1,14 @@
+{
+  "efs": {
+    "allowed": false,
+    "code": "AccessDeniedException"
+  },
+  "servicediscovery": {
+    "allowed": false,
+    "code": "AccessDeniedException"
+  },
+  "iam": {
+    "allowed": false,
+    "code": "AccessDenied"
+  }
+}
