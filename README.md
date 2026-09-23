@@ -1,8 +1,36 @@
 # NovaOps Company Brain
 
-NovaOps Company Brain is a permission-sensitive operational system with four workflows: Maya for HR/onboarding, Webex for IT access operations, standalone Vendor CRM extraction, and an offline Renewal process. It combines cited document retrieval, SQLite-backed operational records, an MCP tool boundary, Bedrock Nova 2 Lite structured output and answers, durable approval gates, Langfuse evaluation traces, and containerized entry points.
+**An AI assistant for internal company operations, with evidence, permissions, and human approval built into its workflows.**
 
-The repository is self-contained. Its company records and documents are synthetic and live under `novaops-enterprise-agent-dataset/`.
+NovaOps helps answer onboarding questions, coordinate IT access requests, extract vendor records, and process renewals. It uses synthetic company data so the workflows can be inspected and replayed without a real employer's systems.
+
+![NovaOps project showcase](docs/images/showcase.png)
+
+*Local showcase of the published implementation. Dashboard counters describe recorded release evidence; use the evaluation commands below to check your own run.*
+
+## Start here
+
+- **Try it:** [five-minute local demo](docs/portfolio-demo.md), including a deterministic run with no model API credentials.
+- **Understand it:** [architecture](#architecture) and [implementation evidence](#what-is-implemented).
+- **Inspect the results:** [evaluation improvement record](evals/IMPROVEMENT_REPORT.md) and [submission evidence](SUBMISSION.md).
+- **Next direction:** [Incident Investigator proposal](docs/aiops-roadmap.md) — planned, not implemented.
+
+## What it does
+
+| Workflow | Example | Boundary |
+| --- | --- | --- |
+| Maya — onboarding | Answer a policy question with cited evidence | Caller permissions filter retrieval before ranking |
+| Webex — IT access | Track an access request through approval | Model text cannot authorize a write |
+| Vendor — extraction | Turn a supplied document into a validated CRM record | Missing facts remain missing |
+| Renewal — operations | Resume a renewal after an approval event | Persistent state and replay protection govern effects |
+
+**Stack:** Python · AWS Bedrock · MCP · SQLite · Langfuse · FastAPI · Docker
+
+## Course foundation and implementation focus
+
+This is my AI Engineering course capstone, built around the supplied NovaOps brief, synthetic dataset, and evaluation scenarios. The repository documents the implemented application, its controls, and the evidence used to validate it.
+
+The implementation focuses on permission-aware retrieval, durable approval and renewal state, tool-boundary enforcement, binding evaluation checks, trace instrumentation, and adversarial retrieval testing. The [improvement record](evals/IMPROVEMENT_REPORT.md) explains specific defects found and corrected. Course requirements and synthetic scenarios are credited as the foundation; evaluation results are scoped project evidence, not production customer outcomes.
 
 ## What is implemented
 
@@ -28,6 +56,19 @@ The repository is self-contained. Its company records and documents are syntheti
 | API, MCP, and worker ship as separate non-root containers, with a cost-gated AWS/EFS deployment path | `Dockerfile.*`, `docker-compose*.yml`, `deploy/aws/`, `docs/deployment.md` |
 
 ## Architecture
+
+```mermaid
+flowchart LR
+    U[Caller request] --> A[Company Brain router]
+    A --> T[MCP / local tool gateway]
+    T --> R[Permission-filtered evidence]
+    T --> S[SQLite operational state]
+    A --> M[Grounded answer]
+    S --> H[Recorded human approval]
+    H --> W[Controlled write / renewal worker]
+    A --> E[Traces and evaluation]
+```
+
 
 `CompanyBrainAgent` owns routing and the shared conversational result contract. Maya and Webex remain focused internal scopes. Vendor is a synchronous document-in/record-out function; Renewal begins from a schedule and resumes on persisted inbound events. All conversational retrieval and operational calls cross a `ToolGateway`, which can run in-process for deterministic tests or against the FastMCP server. SQLite is the source of durable operational, approval, renewal, outbox, and idempotency state; the default database is `.state/novaops.sqlite3` and can be overridden with `NOVAOPS_DB_PATH`.
 
