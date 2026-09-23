@@ -70,9 +70,7 @@ def crash_checks():
     results = []
     original = os.environ.get("NOVAOPS_DB_PATH")
     try:
-        with tempfile.TemporaryDirectory(
-            prefix="lesson15-crash-", dir="/private/tmp"
-        ) as folder:
+        with tempfile.TemporaryDirectory(prefix="lesson15-crash-") as folder:
             for stage in ("start", "internal", "provider", "activation"):
                 os.environ["NOVAOPS_DB_PATH"] = str(Path(folder) / (stage + ".sqlite3"))
                 ops.reset_conn(reseed=False)
