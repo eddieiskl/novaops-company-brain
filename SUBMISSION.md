@@ -17,9 +17,9 @@ This is the reviewer entry point for the repository, trace index, and durable-be
 | | |
 | ------------------ | --------------------------------------------- |
 | **Host region**    | `cloud.langfuse.com` EU |
-| **Project name**   | My Project |
+| **Project name**   | NovaOps Company Brain — Final Project |
 | **Instructor role**| Member *(required — traces are read through the API)* |
-| **Invitation accepted** | no — instructor invitation still required |
+| **Invitation accepted** | pending — Member invitation sent; instructor acceptance required |
 
 ## 3. Scope completed
 
