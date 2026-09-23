@@ -24,7 +24,7 @@ python evals/run_submission.py --include-optional
 
 Expected summary: `produced: 33`, `all_deterministic_checks_pass: true`, and `all_binding_checks_pass: true`. The command writes synthetic results under `.state/`. It does not require AWS or Langfuse credentials in the default local deterministic mode.
 
-On 2026-09-23, the published code at `661c3d77f044d4b4483bc33a3714965a72de67ce` produced all 33 records and passed both gates. This is a deterministic replay result, not a fresh live Bedrock or cloud test.
+The final release produced all 33 records, passed both gates, and passed 145 tests. Lesson 15 also passed four real process-death recovery checks. The exact reviewed source commit is recorded in `SUBMISSION.md`. These are deterministic and local acceptance results, not a fresh live Bedrock or cloud test.
 
 ## 3. Open the showcase
 
@@ -37,7 +37,7 @@ Visit <http://127.0.0.1:4180>. The server binds to localhost.
 1. **Story:** explain the operational problem and four workflows.
 2. **System:** follow the separation between model proposals and application authority.
 3. **Security:** inspect the permission and approval boundaries.
-4. **Proof:** connect claims to recorded evidence. Dashboard counters are release summaries, not continuously refreshed test results.
+4. **Proof:** connect claims to 145 tests, 33 binding evaluation records, four crash-recovery stages, and recorded deployment evidence. Dashboard counters are release summaries, not continuously refreshed test results.
 5. **Live Demo:** inspect Maya's synthetic onboarding view and try a question.
 
 ## 4. Explain one engineering decision
@@ -47,5 +47,5 @@ Use [the improvement report](../evals/IMPROVEMENT_REPORT.md): a generic green ga
 ## Scope and limits
 
 - Live Bedrock, remote MCP, and Langfuse modes require separate configuration; see the main README.
-- The public cloud evidence record describes the published deployment version. Later local course experiments are not automatically part of this release.
+- The public cloud evidence record describes the Lesson 14 deployment version; the deployment was cleaned up after verification.
 - Synthetic fixtures and deterministic replay do not establish production reliability, identity integration, or performance at scale.

@@ -28,8 +28,11 @@ def test_security_demo_exposes_guard_and_durable_delta(message, decision, tools_
     assert result["durable_access_requests_after"] == result["durable_access_requests_before"]
 
 
-def test_showcase_includes_lesson13_security_evidence() -> None:
+def test_showcase_includes_final_release_evidence() -> None:
     payload = showcase_payload()
 
+    assert payload["release_commit"] == "lesson-15-final"
+    assert any(metric["value"] == "145 / 145" for metric in payload["metrics"])
     assert any(metric["value"] == "16 / 16" for metric in payload["security_metrics"])
+    assert any(item["label"] == "Crash recovery" and item["value"] == "4 / 4" for item in payload["proof"])
     assert any(item["kind"] == "Security" for item in payload["evidence"])

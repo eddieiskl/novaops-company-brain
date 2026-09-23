@@ -48,7 +48,7 @@ The implementation focuses on permission-aware retrieval, durable approval and r
 | Binding golden facts, sources, permissions, and tool-use rules are scored | `evals/binding_checks.py`, `tests/test_submission_runner.py` |
 | All 27 required measured turns have a trace index | `SUBMISSION.md`, `evals/run_submission.py` |
 | Vendor extraction uses one forced-tool call and validates the supplied schema locally | `vendor/extractor.py`, `tests/test_vendor_extractor.py` |
-| Renewal pauses, survives restart, and replays every event exactly once | `renewal/`, `tests/test_renewal_workflow.py` |
+| Renewal requires scoped approval and clearance, activates on the effective date, survives process death, and replays every event exactly once | `renewal/`, `tests/test_renewal_workflow.py`, `tests/test_lesson15_renewal.py` |
 | Adversarial permission, approval, and provider proposals fail closed | `evals/run_guardrail_attacks.py`, `tests/test_guardrail_attacks.py` |
 | A typed input guard runs before planning and can be tested independently of server authorization | `company_brain/security.py`, `evals/run_lesson13_offline.py`, `tests/test_input_guard.py` |
 | Retrieved content can be semantically screened or quarantined by exact ID/source/SHA-256 before the answer model | `maya/retrieval_security.py`, `tests/test_retrieval_guard.py` |
@@ -98,6 +98,7 @@ python evals/run_submission.py
 python evals/run_submission.py --include-optional
 python evals/run_guardrail_attacks.py
 python evals/run_lesson13_offline.py
+python evals/run_lesson15.py
 ```
 
 With the synthetic AWS/OpenSearch environment configured, the Lesson 13 live evidence
@@ -152,9 +153,10 @@ GitHub Actions runs pytest, the optional-inclusive 33-case promotion gate, the f
 | Lesson 11 observability and evaluation | Complete; instructor membership remains an external submission step |
 | Lesson 12 eval-loop engineering | Complete for the required scope; before/after gate is documented |
 | Vendor workflow | Complete; three schema-valid 0/1/2-gap extractions |
-| Renewal workflow | Complete; three restart-safe, replay-safe outcomes |
+| Renewal workflow | Complete; three scoped, restart-safe, replay-safe outcomes and four process-death recovery checks |
 | Lesson 13 security homework | Complete; 16-case live semantic guard, independent enforcement proof, project-specific OpenSearch poisoning/recovery evidence, and application-owned retrieval provenance |
-| Lesson 14 packaging/deployment | ECS/LiteLLM/EFS verified: 108 tests, 22 local checks, 16 cloud checks, task-replacement persistence and automatic stop; cleanup verified. See `docs/lesson14-cloud-evidence.md`. |
+| Lesson 14 packaging/deployment | Historical deployment stage verified on ECS/LiteLLM/EFS: 108 tests, 22 local checks, 16 cloud checks, task-replacement persistence and automatic stop; cleanup verified. See `docs/lesson14-cloud-evidence.md`. |
+| Lesson 15 system design and renewal hardening | Complete; PRD review, HLD, as-built record, scoped authority, Finance clearance, effective-date activation, and 145-test acceptance suite. See `design/AS-BUILT.md`. |
 
 ## Security and data handling
 
@@ -181,4 +183,6 @@ curl http://127.0.0.1:18080/health/ready
 
 See `docs/deployment.md` for entry points, durability, credentials, cost, cleanup, and cloud-deployment boundaries. `docs/lesson14-cloud-evidence.md` is the reviewer-facing live evidence record.
 
-The [Lesson 14 vendor extension](docs/lesson14-vendor-extension.md) adds bounded provider retries, one schema repair, and an SQS consumer sharing the HTTP extraction function. The project suite passes 118 tests; all three live vendor fixtures passed the expected 0/1/2 missing-field checks.
+The [Lesson 14 vendor extension](docs/lesson14-vendor-extension.md) added bounded provider retries, one schema repair, and an SQS consumer sharing the HTTP extraction function. That historical stage passed 118 tests and all three live 0/1/2 missing-field fixtures.
+
+The final [Lesson 15 as-built design](design/AS-BUILT.md) hardens Renewal with scoped authority, explicit Finance and security clearance, source-conflict handling, future-agreement persistence, effective-date activation, and transactional notification intent. The current release passes 145 tests, all 33 required-plus-optional evaluation records, and four real process-death recovery checks. The original course evaluation predates the PRD v1.3 scope fields; the local supplemental fixtures are explicitly labeled under `evals/fixtures/lesson15/`.

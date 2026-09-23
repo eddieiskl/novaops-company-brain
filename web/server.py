@@ -23,10 +23,10 @@ SECURITY_DEMO_LOCK = Lock()
 
 def showcase_payload() -> dict[str, object]:
     return {
-        "release_commit": "lesson-13",
+        "release_commit": "lesson-15-final",
         "metrics": [
             {"label": "Workflows", "value": "4 / 4", "note": "Required + optional"},
-            {"label": "Tests", "value": "92 / 92", "note": "Full suite"},
+            {"label": "Tests", "value": "145 / 145", "note": "Full suite"},
             {"label": "Evaluation", "value": "33 / 33", "note": "Optional-inclusive"},
             {"label": "Deterministic", "value": "243 × 1.0", "note": "Binding scores"},
             {"label": "Security", "value": "16 / 16", "note": "Live guard cases"},
@@ -53,8 +53,8 @@ def showcase_payload() -> dict[str, object]:
             {
                 "name": "Renewal",
                 "domain": "Contract renewal",
-                "proof": "Persistent schedule, proposal, outbox, audit, and notifications.",
-                "boundary": "Only an exact approved proposal can create exactly-once effects.",
+                "proof": "Scoped approval, Finance clearance, effective-date activation, and crash recovery.",
+                "boundary": "Only matching authority and trusted state can create exactly-once effects.",
             },
         ],
         "control_chain": ["Retrieve", "Validate", "Authorize", "Execute", "Observe", "Evaluate"],
@@ -65,16 +65,16 @@ def showcase_payload() -> dict[str, object]:
             {"label": "Index restored", "value": "634 / 634", "note": "Owned poison removed"},
         ],
         "proof": [
-            {"label": "Pytest", "value": "92 / 92", "note": "Reliability and durability"},
+            {"label": "Pytest", "value": "145 / 145", "note": "Reliability and durability"},
             {"label": "Golden records", "value": "33 / 33", "note": "Required + optional"},
             {"label": "API scores", "value": "243", "note": "Every result is 1.0"},
             {"label": "Advisory judge", "value": "0.897", "note": "99 separate scores"},
-            {"label": "GitHub Actions", "value": "Passed", "note": "41-second CI run"},
+            {"label": "Crash recovery", "value": "4 / 4", "note": "Real process-death stages"},
         ],
         "evidence": [
             {"claim": "Grounded answers", "source": "Citations and permission-filtered retrieval", "kind": "Binding"},
             {"claim": "Durable approval", "source": "Restart and resume tests plus SQLite state", "kind": "Binding"},
-            {"claim": "Exactly-once effects", "source": "Replayed renewal events and idempotent outbox", "kind": "Binding"},
+            {"claim": "Exactly-once effects", "source": "Replayed renewal events, process-death recovery, and transactional outbox", "kind": "Binding"},
             {"claim": "Observable behavior", "source": "33 indexed traces and 42 tool observations", "kind": "Trace"},
             {"claim": "Safe deployment", "source": "Three non-root images, health checks, local Compose", "kind": "Packaging"},
             {"claim": "Poison resistance", "source": "Source manifest, semantic guard, quarantine, and exact cleanup", "kind": "Security"},

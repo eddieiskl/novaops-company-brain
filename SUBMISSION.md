@@ -1,7 +1,6 @@
 # NovaOps final project — submission
 
-Fill this in and commit it to your repository as `SUBMISSION.md`. It is the first thing read,
-and it is how every trace gets found.
+This is the reviewer entry point for the repository, trace index, and durable-behavior evidence.
 
 ---
 
@@ -105,9 +104,9 @@ blank if you did not run it.
 
 | Item | Turn | Trace ID |
 | ---- | ---- | -------- |
-| `R-I-01` | — | d22360d677d618149cb5e5a564ac0383 |
-| `R-I-02` | — | 01feec7af347a2f8dfe6e09be3070880 |
-| `R-I-03` | — | 505d2a8288e684ac7ab24d52e617a24c |
+| `R-I-01` | — | 5e2b190839d046667a88fafb22fc775c |
+| `R-I-02` | — | bd0f7fab7dfc576be594bf1c7f657dc1 |
+| `R-I-03` | — | 70a315b3cf4aab73bdafbf379ae78ba4 |
 
 ---
 
@@ -120,14 +119,20 @@ input decisions, independent authorization, application-owned retrieval provenan
 poison containment, exact cleanup, and memory invalidation. Lesson 14
 gateway serving was verified locally and on ECS with encrypted EFS, separate model IAM,
 durable approval restart/replay, and a working automatic stop. Cloud cleanup is verified.
-The tested local source snapshot is recorded in `docs/lesson14-cloud-evidence.md`;
-this run did not publish a new public submission commit. Live evaluations use Bedrock
-Nova 2 Lite; deterministic fallbacks remain available for repeatable local safety tests.
+The tested Lesson 14 source snapshot is recorded in `docs/lesson14-cloud-evidence.md`.
+Live evaluations use Bedrock Nova 2 Lite; deterministic fallbacks remain available for
+repeatable local safety and recovery tests.
 
 ## Lesson 14 vendor follow-up
 
-Optional Task 2 is implemented and verified: bounded direct-provider retries, one schema repair, and a persistent-cache SQS consumer that publishes before acknowledging input. HTTP and queue delivery share the extraction function. All 118 project tests and the live 0/1/2 missing-field fixture checks pass. See [vendor evidence](docs/lesson14-vendor-extension.md).
+Optional Task 2 is implemented and verified: bounded direct-provider retries, one schema repair, and a persistent-cache SQS consumer that publishes before acknowledging input. HTTP and queue delivery share the extraction function. At that historical stage, all 118 project tests and the live 0/1/2 missing-field fixture checks passed. See [vendor evidence](docs/lesson14-vendor-extension.md).
 
-The Lesson 14 follow-up is published for review in [PR #1](https://github.com/eddieiskl/novaops-company-brain/pull/1), branch `codex/lesson14-serving-vendor`. The historical reviewed submission SHA above remains unchanged until the new work is merged.
+The Lesson 14 follow-up from [PR #1](https://github.com/eddieiskl/novaops-company-brain/pull/1) is included in the final reviewed release together with the portfolio presentation and Lesson 15 renewal completion.
 
 The separate [RDS-backed Lesson 14 course demo](docs/lesson14-rds-demo.md) also passed nine live checks, including cross-worker conversation persistence. All 32 resource-cleanup checks passed. The automatic-stop watcher was interrupted by connectivity loss, so its complete timing test is not claimed.
+
+## Lesson 15 renewal completion — 2026-09-23
+
+The R-I-01/02/03 trace IDs above were refreshed with the scoped-approval and clearance workflow. The original evaluation data predates PRD v1.3; explicitly labeled fixtures in evals/fixtures/lesson15 supplement it. R-I-01 proves 40 seats after July 3 confirmation and one activation/notification intent on July 21. R-I-02/03 remain human-review cases. Four process-death recovery checks and all 145 capstone tests passed. See evals/results/lesson15-live-traces.json and design/AS-BUILT.md. Local mock notification intents are not evidence of real delivery.
+
+Final source-validation hardening adds nine regression cases. The three recorded live trace IDs were refreshed after this change, with all acceptance scores passing. Current offline acceptance also passes.

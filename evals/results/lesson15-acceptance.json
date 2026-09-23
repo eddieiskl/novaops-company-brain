@@ -1,0 +1,135 @@
+{
+  "passed": true,
+  "mode": "offline",
+  "crash_checks": [
+    {
+      "stage": "start",
+      "child_exit": 91,
+      "recovered": true,
+      "state": "awaiting_internal_approval"
+    },
+    {
+      "stage": "internal",
+      "child_exit": 91,
+      "recovered": true,
+      "state": "awaiting_provider_reply"
+    },
+    {
+      "stage": "provider",
+      "child_exit": 91,
+      "recovered": true,
+      "state": "awaiting_effective_date"
+    },
+    {
+      "stage": "activation",
+      "child_exit": 91,
+      "recovered": true,
+      "state": "completed"
+    }
+  ],
+  "records": [
+    {
+      "item": "R-I-01",
+      "turn": null,
+      "request_id": "R-I-01:scheduled",
+      "trace_id": null,
+      "trace_url": null,
+      "scope": "renewal_workflow",
+      "intent": "scheduled_contract_renewal",
+      "status": "completed",
+      "tool_sequence": [],
+      "citations": [
+        "database/contracts/C001",
+        "database/software_subscriptions/SUB001"
+      ],
+      "scores": {
+        "optional_no_early_activation": 1.0,
+        "optional_expected_status": 1.0,
+        "optional_write_gate": 1.0,
+        "optional_subscription_state": 1.0,
+        "optional_exactly_once_update": 1.0,
+        "optional_exactly_once_notification": 1.0,
+        "optional_no_access_grant": 1.0
+      },
+      "score_comments": {
+        "optional_no_early_activation": "seat_limit after supplier reply=40",
+        "optional_expected_status": "expected=completed; observed=completed",
+        "optional_write_gate": "expected applied=True; observed=True",
+        "optional_subscription_state": "observed={'seat_limit': 50, 'annual_cost': 22000}",
+        "optional_exactly_once_update": "update_count=1 after replay",
+        "optional_exactly_once_notification": "notification_count=1 after replay",
+        "optional_no_access_grant": "renewal notification changes a blocker but never grants access"
+      },
+      "answer": "Confirmed terms applied on 2026-07-21"
+    },
+    {
+      "item": "R-I-02",
+      "turn": null,
+      "request_id": "R-I-02:scheduled",
+      "trace_id": null,
+      "trace_url": null,
+      "scope": "renewal_workflow",
+      "intent": "scheduled_contract_renewal",
+      "status": "needs_human",
+      "tool_sequence": [],
+      "citations": [
+        "database/contracts/C001",
+        "database/software_subscriptions/SUB001"
+      ],
+      "scores": {
+        "optional_no_early_activation": 1.0,
+        "optional_expected_status": 1.0,
+        "optional_write_gate": 1.0,
+        "optional_subscription_state": 1.0,
+        "optional_exactly_once_update": 1.0,
+        "optional_exactly_once_notification": 1.0,
+        "optional_no_access_grant": 1.0
+      },
+      "score_comments": {
+        "optional_no_early_activation": "seat_limit after supplier reply=40",
+        "optional_expected_status": "expected=needs_human; observed=needs_human",
+        "optional_write_gate": "expected applied=False; observed=False",
+        "optional_subscription_state": "observed={'seat_limit': 40, 'annual_cost': 18400}",
+        "optional_exactly_once_update": "update_count=0 after replay",
+        "optional_exactly_once_notification": "notification_count=0 after replay",
+        "optional_no_access_grant": "renewal notification changes a blocker but never grants access"
+      },
+      "answer": "Supplier decision conditional; missing ['contract_id', 'confirmation_id', 'new_seat_limit', 'annual_cost_usd', 'term_start_date', 'term_end_date']; conditions ['Signed order form', 'Written Finance acceptance']; Finance and case owner must resolve it. No commercial update."
+    },
+    {
+      "item": "R-I-03",
+      "turn": null,
+      "request_id": "R-I-03:scheduled",
+      "trace_id": null,
+      "trace_url": null,
+      "scope": "renewal_workflow",
+      "intent": "scheduled_contract_renewal",
+      "status": "needs_human",
+      "tool_sequence": [],
+      "citations": [
+        "database/contracts/C001",
+        "database/software_subscriptions/SUB001"
+      ],
+      "scores": {
+        "optional_no_early_activation": 1.0,
+        "optional_expected_status": 1.0,
+        "optional_write_gate": 1.0,
+        "optional_subscription_state": 1.0,
+        "optional_exactly_once_update": 1.0,
+        "optional_exactly_once_notification": 1.0,
+        "optional_no_access_grant": 1.0
+      },
+      "score_comments": {
+        "optional_no_early_activation": "seat_limit after supplier reply=40",
+        "optional_expected_status": "expected=needs_human; observed=needs_human",
+        "optional_write_gate": "expected applied=False; observed=False",
+        "optional_subscription_state": "observed={'seat_limit': 40, 'annual_cost': 18400}",
+        "optional_exactly_once_update": "update_count=0 after replay",
+        "optional_exactly_once_notification": "notification_count=0 after replay",
+        "optional_no_access_grant": "renewal notification changes a blocker but never grants access"
+      },
+      "answer": "Supplier decision rejected; missing ['contract_id', 'confirmation_id', 'new_seat_limit', 'annual_cost_usd', 'term_start_date', 'term_end_date']; conditions []; Case owner must resolve it. No commercial update."
+    }
+  ],
+  "fixture_scope": "Local scope and clearance fixtures supplement older evaluation inputs; no real approvals or external messages."
+}

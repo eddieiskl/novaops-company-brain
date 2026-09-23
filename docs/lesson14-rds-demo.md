@@ -1,6 +1,6 @@
 # Lesson 14: full RDS-backed course deployment
 
-The separate Exercise 6 course demo ran in an isolated AWS teaching sandbox. This complements the final project's separately verified ECS/EFS packaging; it is not that project's production architecture.
+The separate Exercise 6 course demo ran in AWS account 531575601230, us-east-1, using the dedicated Lesson14 deployer. This complements the final project's separately verified ECS/EFS packaging; it is not that project's production architecture.
 
 ## Verified
 
@@ -19,3 +19,5 @@ The automatic-stop watcher lost its AWS connection before recording the live tra
 Classroom limitations remain: one small single-AZ database, no retained backups, an IP-restricted HTTP dashboard, and a worker task role shared with its gateway/MCP sidecars. Finished-run status is held in ingress memory, while conversation state and LiteLLM configuration use RDS. This is a temporary exercise deployment, and has been removed.
 
 Local machine evidence is retained under the lesson's `code/local-demo/`: `rds-cloud-verification.json`, `rds-cloud-cleanup.json`, and `rds-cloud-autostop.json`. These contain check results rather than raw conversations and are not uploaded with the project.
+
+On 2026-09-18, the temporary `Lesson14Policy2` inline policy was removed through the signed-in AWS Console. The console confirmed removal and showed only the preserved `Lesson14Deployer` base policy. The sanitized RDS report was published to PR #1 in commit `5dba868378569b9cd02e17ff439172769628b868`.

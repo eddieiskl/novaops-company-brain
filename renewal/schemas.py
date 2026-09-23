@@ -14,6 +14,9 @@ class InternalApprovalEvent:
     channel: str
     reason: str
     decided_at: str
+    event_type: str = "internal_approval"
+    approved_scope: dict[str, Any] | None = None
+    approval_id: str | None = None
 
 
 @dataclass

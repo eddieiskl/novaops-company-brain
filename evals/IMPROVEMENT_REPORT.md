@@ -30,6 +30,6 @@ The instrumentation review also found that required evidence names were dropped 
 
 ## Result
 
-The expanded implementation now passes 87/87 tests after the Lesson 13 provenance and showcase extension. The required submission dry-run produces 27/27 records; the optional-inclusive run produces 33/33. Every record maps to an explicit expectation, and both runs report `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`.
+At the end of the Lesson 13 provenance and showcase extension, the implementation passed 87/87 tests. The required submission dry-run produced 27/27 records; the optional-inclusive run produced 33/33. Every record mapped to an explicit expectation, and both runs reported `all_deterministic_checks_pass: true` and `all_binding_checks_pass: true`. This is a historical improvement checkpoint; the current release totals are recorded in the README and submission file.
 
 The polished live read-back found 33 traces, 26 Nova generations, 42 tool observations, 243 deterministic API scores with no non-unit result, and no error observations. All 27 conversational traces include grounding context, all 18 session follow-ups include prior conversation, all six optional traces include their source document or provider reply, and no trace copies large input into propagated metadata. The separate project-level LLM evaluator produced 99 advisory scores with a `0.897` mean; these are intentionally reported separately from the binding promotion gate. Refreshed live trace IDs are recorded in `SUBMISSION.md`.

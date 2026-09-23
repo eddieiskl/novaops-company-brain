@@ -121,6 +121,28 @@ def _migrate(db: sqlite3.Connection) -> None:
         );
         """
     )
+    columns = {row[1] for row in db.execute("PRAGMA table_info(renewal_runs)")}
+    for name in ("approved_scope_json", "recommendation_json", "next_action", "reason"):
+        if name not in columns:
+            db.execute(f"ALTER TABLE renewal_runs ADD COLUMN {name} TEXT")
+    db.executescript("""
+        CREATE TABLE IF NOT EXISTS renewal_clearances (
+            run_id TEXT NOT NULL, kind TEXT NOT NULL, event_id TEXT NOT NULL,
+            actor_id TEXT NOT NULL, decision TEXT NOT NULL, decided_at TEXT NOT NULL,
+            PRIMARY KEY(run_id, kind)
+        );
+        CREATE TABLE IF NOT EXISTS renewal_agreements (
+            run_id TEXT PRIMARY KEY, decision_json TEXT NOT NULL, effective_date TEXT NOT NULL,
+            recorded_at TEXT NOT NULL, approval_event_id TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS renewal_event_payloads (
+            event_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, payload_hash TEXT NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS renewal_portfolio_reviews (
+            contract_id TEXT NOT NULL, as_of TEXT NOT NULL, context_json TEXT NOT NULL,
+            recommendation_json TEXT NOT NULL, PRIMARY KEY(contract_id, as_of)
+        );
+    """)
     db.commit()
 
 
@@ -150,6 +172,10 @@ def reset_conn(*, reseed: bool = True) -> None:
         try:
             schema, seed = _schema_seed()
             db.executescript(
+                "DROP TABLE IF EXISTS renewal_clearances; "
+                "DROP TABLE IF EXISTS renewal_agreements; "
+                "DROP TABLE IF EXISTS renewal_event_payloads; "
+                "DROP TABLE IF EXISTS renewal_portfolio_reviews; "
                 "DROP TABLE IF EXISTS renewal_notifications; "
                 "DROP TABLE IF EXISTS renewal_applied_updates; "
                 "DROP TABLE IF EXISTS renewal_processed_events; "

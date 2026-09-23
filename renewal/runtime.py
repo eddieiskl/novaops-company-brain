@@ -20,7 +20,12 @@ class DeterministicProviderModel:
             "term_end_date": "2027-07-20",
         }
         if "final confirmation" in prompt and "RX-WEBEX-2026-8841" in prompt:
-            return {**common, "decision": "approved", "confirmation_id": "RX-WEBEX-2026-8841", "conditions": []}
+            return {
+                **common,
+                "decision": "approved",
+                "confirmation_id": "RX-WEBEX-2026-8841",
+                "conditions": [],
+            }
         if "not final approval" in prompt:
             return {
                 **common,
@@ -29,7 +34,12 @@ class DeterministicProviderModel:
                 "conditions": ["Signed order form", "Written Finance acceptance"],
             }
         if "not approve" in prompt or "declined" in prompt:
-            return {**common, "decision": "rejected", "confirmation_id": None, "conditions": []}
+            return {
+                **common,
+                "decision": "rejected",
+                "confirmation_id": None,
+                "conditions": [],
+            }
         return {
             "contract_id": None,
             "decision": "ambiguous",
@@ -42,9 +52,20 @@ class DeterministicProviderModel:
         }
 
 
-def build_renewal_workflow_from_env(*, replies: dict[str, str] | None = None):
+def build_renewal_workflow_from_env(
+    *, replies: dict[str, str] | None = None, security_reviewer_id: str | None = None
+):
     mode = os.getenv("NOVAOPS_ANSWER_MODE", "deterministic").strip().lower()
-    model = get_model() if mode in {"bedrock", "gateway"} else DeterministicProviderModel()
+    model = (
+        get_model() if mode in {"bedrock", "gateway"} else DeterministicProviderModel()
+    )
     if mode not in {"deterministic", "bedrock", "gateway"}:
-        raise ValueError("NOVAOPS_ANSWER_MODE must be 'deterministic', 'bedrock', or 'gateway'.")
-    return build_renewal_workflow(extractor=ProviderDecisionExtractor(model=model), replies=replies)
+        raise ValueError(
+            "NOVAOPS_ANSWER_MODE must be 'deterministic', 'bedrock', or 'gateway'."
+        )
+    return build_renewal_workflow(
+        extractor=ProviderDecisionExtractor(model=model),
+        replies=replies,
+        security_reviewer_id=security_reviewer_id
+        or os.getenv("NOVAOPS_RENEWAL_SECURITY_REVIEWER"),
+    )

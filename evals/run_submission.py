@@ -220,7 +220,9 @@ def _run_vendor_cases(workflow: dict, *, trace: bool) -> list[dict]:
 
 def _run_renewal_cases(workflow: dict, *, trace: bool) -> list[dict]:
     records: list[dict] = []
-    approval = InternalApprovalEvent(**workflow["internal_approval_event"])
+    # The original evaluation predates PRD v1.3 scoped approvals/clearances.
+    lesson15_events = [InternalApprovalEvent(**json.loads(line)) for line in (ROOT / "evals/fixtures/lesson15/internal_approval_events.jsonl").read_text().splitlines()]
+    approval = lesson15_events[0]
     as_of = workflow["trigger"]["as_of"]
     for case in workflow["inputs"]:
         ops.reset_conn()
@@ -230,23 +232,29 @@ def _run_renewal_cases(workflow: dict, *, trace: bool) -> list[dict]:
             "fixture_id": case["fixture_id"],
             "input": {
                 "trigger": workflow["trigger"],
-                "internal_approval_event": workflow["internal_approval_event"],
+                "internal_approval_events": [asdict(event) for event in lesson15_events],
+                "fixture_provenance": "Local Lesson 15 scope and clearance supplement",
                 "fixture_id": case["fixture_id"],
                 "provider_reply": case["provider_reply"],
             },
         }
         with _standalone_trace(trace, case["id"], request_id, metadata) as (client, root):
-            started = build_renewal_workflow_from_env(replies={case["fixture_id"]: case["provider_reply"]}).start(as_of)
+            started = build_renewal_workflow_from_env(replies={case["fixture_id"]: case["provider_reply"]}, security_reviewer_id="E006").start(as_of)
             ops.reset_conn(reseed=False)
-            resumed = build_renewal_workflow_from_env(replies={case["fixture_id"]: case["provider_reply"]})
-            resumed.handle_internal_event(approval)
-            resumed.handle_internal_event(approval)
+            resumed = build_renewal_workflow_from_env(replies={case["fixture_id"]: case["provider_reply"]}, security_reviewer_id="E006")
+            for event in lesson15_events:
+                resumed.handle_internal_event(event)
+                resumed.handle_internal_event(event)
             ops.reset_conn(reseed=False)
-            completed = build_renewal_workflow_from_env(replies={case["fixture_id"]: case["provider_reply"]})
+            completed = build_renewal_workflow_from_env(replies={case["fixture_id"]: case["provider_reply"]}, security_reviewer_id="E006")
             result = completed.handle_provider_reply(started.run_id, case["fixture_id"], case["provider_reply"])
             completed.handle_provider_reply(started.run_id, case["fixture_id"], case["provider_reply"])
 
+            before_effective = ops.conn().execute("SELECT seat_limit FROM software_subscriptions WHERE subscription_id = 'SUB001'").fetchone()[0]
             expected_applied = case["id"] == "R-I-01"
+            if expected_applied:
+                result = completed.start("2026-07-21")
+                completed.start("2026-07-21")
             subscription = ops.conn().execute(
                 "SELECT seat_limit, annual_cost FROM software_subscriptions WHERE subscription_id = 'SUB001'"
             ).fetchone()
@@ -254,6 +262,7 @@ def _run_renewal_cases(workflow: dict, *, trace: bool) -> list[dict]:
             notification_count = len(completed.store.notifications(started.run_id))
             expected_status = "completed" if expected_applied else "needs_human"
             scores = {
+                "optional_no_early_activation": float(before_effective == 40),
                 "optional_expected_status": float(result.status == expected_status),
                 "optional_write_gate": float(result.applied == expected_applied),
                 "optional_subscription_state": float(
@@ -265,6 +274,7 @@ def _run_renewal_cases(workflow: dict, *, trace: bool) -> list[dict]:
                 "optional_no_access_grant": float("access was granted" not in result.answer.casefold()),
             }
             comments = {
+                "optional_no_early_activation": f"seat_limit after supplier reply={before_effective}",
                 "optional_expected_status": f"expected={expected_status}; observed={result.status}",
                 "optional_write_gate": f"expected applied={expected_applied}; observed={result.applied}",
                 "optional_subscription_state": f"observed={dict(subscription)}",

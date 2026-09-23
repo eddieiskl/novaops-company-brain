@@ -17,7 +17,13 @@ if TYPE_CHECKING:
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_PATH = ROOT / "novaops-enterprise-agent-dataset" / "workflows" / "renewal" / "provider_renewal_decision.schema.json"
+SCHEMA_PATH = (
+    ROOT
+    / "novaops-enterprise-agent-dataset"
+    / "workflows"
+    / "renewal"
+    / "provider_renewal_decision.schema.json"
+)
 COMPLETE_FIELDS = (
     "contract_id",
     "confirmation_id",
@@ -31,8 +37,7 @@ COMPLETE_FIELDS = (
 class StructuredModel(Protocol):
     model_id: str
 
-    def extract_with_tool(self, prompt: str, **kwargs) -> dict[str, Any]:
-        ...
+    def extract_with_tool(self, prompt: str, **kwargs) -> dict[str, Any]: ...
 
 
 @dataclass(frozen=True)
@@ -56,10 +61,14 @@ class ProviderRenewalDecision:
 class ProviderDecisionExtractor:
     """One-call extraction of an untrusted provider reply into a proposal."""
 
-    def __init__(self, model: StructuredModel | None = None, schema_path: Path = SCHEMA_PATH) -> None:
+    def __init__(
+        self, model: StructuredModel | None = None, schema_path: Path = SCHEMA_PATH
+    ) -> None:
         self.model = model or get_model()
         self.schema = json.loads(schema_path.read_text(encoding="utf-8"))
-        self.validator = Draft202012Validator(self.schema, format_checker=FormatChecker())
+        self.validator = Draft202012Validator(
+            self.schema, format_checker=FormatChecker()
+        )
 
     def extract(self, fixture_id: str, provider_reply: str) -> ProviderRenewalDecision:
         with observe(
@@ -81,18 +90,30 @@ class ProviderDecisionExtractor:
             generation.update(output=raw, metadata={"completed": True})
         with observe("provider_reply_normalize_and_validate", input=raw) as validation:
             normalized = self._normalize(raw, fixture_id, provider_reply)
-            errors = sorted(self.validator.iter_errors(normalized), key=lambda error: list(error.path))
+            errors = sorted(
+                self.validator.iter_errors(normalized),
+                key=lambda error: list(error.path),
+            )
             if errors:
-                details = "; ".join(f"{'/'.join(map(str, error.path)) or '<root>'}: {error.message}" for error in errors)
+                details = "; ".join(
+                    f"{'/'.join(map(str, error.path)) or '<root>'}: {error.message}"
+                    for error in errors
+                )
                 validation.update(output={"valid": False, "errors": details})
                 raise ValueError(f"Provider reply failed schema validation: {details}")
             validation.update(
-                output={"valid": True, "decision": normalized["decision"], "missing_fields": normalized["missing_fields"]}
+                output={
+                    "valid": True,
+                    "decision": normalized["decision"],
+                    "missing_fields": normalized["missing_fields"],
+                }
             )
         return ProviderRenewalDecision(**normalized)
 
     @staticmethod
-    def _normalize(raw: dict[str, Any], fixture_id: str, provider_reply: str) -> dict[str, Any]:
+    def _normalize(
+        raw: dict[str, Any], fixture_id: str, provider_reply: str
+    ) -> dict[str, Any]:
         message_id = ""
         for line in provider_reply.splitlines():
             if line.casefold().startswith("message-id:"):
@@ -101,30 +122,28 @@ class ProviderDecisionExtractor:
         decision = str(raw.get("decision") or "ambiguous").strip().casefold()
         if decision not in {"approved", "conditional", "rejected", "ambiguous"}:
             decision = "ambiguous"
-        values = {field: raw.get(field) for field in COMPLETE_FIELDS}
-        for integer_field in ("new_seat_limit", "annual_cost_usd"):
-            value = values[integer_field]
-            if isinstance(value, bool):
-                values[integer_field] = None
-            elif isinstance(value, (int, float)):
-                values[integer_field] = int(value) if value >= 0 and float(value).is_integer() else None
-            elif isinstance(value, str):
-                stripped = value.strip()
-                if stripped.startswith("-") or stripped.casefold() in {"", "null", "none", "unknown", "n/a"}:
-                    values[integer_field] = None
-                    continue
-                digits = "".join(character for character in value if character.isdigit())
-                values[integer_field] = int(digits) if digits else None
-        # Strongly labelled source literals outrank model-proposed values.
-        values.update(ProviderDecisionExtractor._explicit_commercial_values(provider_reply))
-        conditions = [str(item).strip() for item in raw.get("conditions", []) if str(item).strip()]
-        if decision == "approved" and not ProviderDecisionExtractor._has_unconditional_approval(provider_reply):
+        # Commercial facts must be evidenced independently of model output.
+        # Unsupported wording or conflicting literals goes to human review.
+        values = {field: None for field in COMPLETE_FIELDS}
+        values.update(
+            ProviderDecisionExtractor._explicit_commercial_values(provider_reply)
+        )
+        conditions = [
+            str(item).strip() for item in raw.get("conditions", []) if str(item).strip()
+        ]
+        if (
+            decision == "approved"
+            and not ProviderDecisionExtractor._has_unconditional_approval(
+                provider_reply
+            )
+        ):
             decision = "ambiguous"
             conditions.append("Source lacks explicit unconditional approval language")
         missing = [field for field, value in values.items() if value is None]
         return {
             "fixture_id": fixture_id,
-            "message_id": message_id or str(raw.get("message_id") or f"<{fixture_id}@provider.invalid>"),
+            "message_id": message_id
+            or str(raw.get("message_id") or f"<{fixture_id}@provider.invalid>"),
             **values,
             "decision": decision,
             "conditions": conditions,
@@ -133,7 +152,7 @@ class ProviderDecisionExtractor:
 
     @staticmethod
     def _explicit_commercial_values(provider_reply: str) -> dict[str, Any]:
-        """Recover literal commercial values when a model emits null sentinels.
+        """Extract unique, strongly labelled commercial facts from source text.
 
         This does not infer approval. It only copies strongly labelled values from
         the source email; the independent write gate still requires an approved,
@@ -150,18 +169,33 @@ class ProviderDecisionExtractor:
         }
         found: dict[str, Any] = {}
         for field, pattern in patterns.items():
-            match = re.search(pattern, provider_reply, flags=re.IGNORECASE)
-            if not match:
-                continue
-            value: Any = match.group(1)
-            if field in {"new_seat_limit", "annual_cost_usd"}:
-                value = int(value.replace(",", ""))
-            found[field] = value
+            matches = re.findall(pattern, provider_reply, flags=re.IGNORECASE)
+            candidates: set[Any] = set()
+            for value in matches:
+                if field in {"new_seat_limit", "annual_cost_usd"}:
+                    value = int(value.replace(",", ""))
+                elif field in {"contract_id", "confirmation_id"}:
+                    # Words such as "unspecified" are not confirmation IDs.
+                    if not any(character.isdigit() for character in value):
+                        continue
+                    value = value.upper()
+                candidates.add(value)
+            if len(candidates) == 1:
+                found[field] = candidates.pop()
         return found
 
     @staticmethod
     def _has_unconditional_approval(provider_reply: str) -> bool:
         folded = " ".join(provider_reply.casefold().split())
+        # Conservative guards for explicit qualifications even if the model
+        # incorrectly labels the reply as approved. Unrecognized language still
+        # requires human review; this is not a general email semantics parser.
+        if re.search(
+            r"\b(?:not|never)\s+(?:yet\s+)?(?:approved|unconditionally approved|final|a final)\b"
+            r"|\b(?:subject to|pending|conditional on|provided that|unless)\b",
+            folded,
+        ):
+            return False
         final = "final confirmation" in folded or "final approval" in folded
         unconditional = any(
             phrase in folded
