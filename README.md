@@ -4,9 +4,9 @@
 
 NovaOps helps answer onboarding questions, coordinate IT access requests, extract vendor records, and process renewals. It uses synthetic company data so the workflows can be inspected and replayed without a real employer's systems.
 
-![NovaOps project showcase](docs/images/showcase.png)
+> **Final verified release:** 145/145 tests · 33/33 required-plus-optional evaluation records · 4/4 real process-death recovery stages.
 
-*Local showcase of the published implementation. Dashboard counters describe recorded release evidence; use the evaluation commands below to check your own run.*
+The local showcase presents the recorded release evidence as a five-step demo; use the evaluation commands below to reproduce the deterministic checks.
 
 ## Start here
 
