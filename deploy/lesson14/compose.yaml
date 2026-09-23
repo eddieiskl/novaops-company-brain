@@ -1,0 +1,63 @@
+name: novaops-project-lesson14
+services:
+  mcp:
+    build:
+      context: ../..
+      dockerfile: deploy/lesson14/Dockerfile.mcp
+    read_only: true
+    tmpfs: &id001
+    - /tmp
+    security_opt: &id002
+    - no-new-privileges:true
+    stop_grace_period: 35s
+    image: novaops-project-mcp:${IMAGE_TAG:-lesson14}
+    environment:
+      NOVAOPS_DB_PATH: /data/novaops.sqlite3
+      LANGFUSE_TRACING_ENABLED: 'false'
+    volumes:
+    - novaops_l14_state:/data
+  gateway:
+    build:
+      context: ../..
+      dockerfile: deploy/lesson14/Dockerfile.gateway
+    read_only: true
+    tmpfs: *id001
+    security_opt: *id002
+    stop_grace_period: 35s
+    image: novaops-project-gateway:${IMAGE_TAG:-lesson14}
+    env_file:
+    - .runtime/gateway.env
+    ports:
+    - 127.0.0.1:4114:4000
+  agent-api:
+    build:
+      context: ../..
+      dockerfile: deploy/lesson14/Dockerfile.agent
+    read_only: true
+    tmpfs: *id001
+    security_opt: *id002
+    stop_grace_period: 35s
+    image: novaops-project-agent:${IMAGE_TAG:-lesson14}
+    env_file:
+    - .runtime/agent.env
+    environment:
+      NOVAOPS_TOOL_MODE: mcp
+      NOVAOPS_MCP_URL: http://mcp:9880/mcp
+      NOVAOPS_ANSWER_MODE: gateway
+      NOVAOPS_MODEL_BACKEND: gateway
+      LITELLM_BASE_URL: http://gateway:4000
+      LITELLM_MODEL: novaops-approved
+      AWS_ACCESS_KEY_ID: AKIAIOSFODNN7EXAMPLE
+      AWS_SECRET_ACCESS_KEY: deliberately-invalid
+      AWS_SESSION_TOKEN: ''
+      LANGFUSE_TRACING_ENABLED: 'false'
+      NOVAOPS_RELEASE_SHA: ${IMAGE_TAG:-0000000000000000000000000000000000000000}
+    ports:
+    - 127.0.0.1:18114:8080
+    depends_on:
+      mcp:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+volumes:
+  novaops_l14_state: {}

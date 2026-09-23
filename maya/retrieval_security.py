@@ -8,7 +8,11 @@ from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from model_client import BedrockModelClient
+from model_client import get_model
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from model_client import BedrockModelClient
 
 from .retrieval import EvidenceRetriever
 from .schemas import CallerContext, ContextPlan, EvidenceChunk
@@ -97,7 +101,7 @@ class TrustedCorpusManifest:
 
 class BedrockRetrievalGuard:
     def __init__(self, model: Any | None = None, *, max_chars: int = 16_000) -> None:
-        self.model = model or BedrockModelClient(max_tokens=450, temperature=0.0)
+        self.model = model or get_model(max_tokens=450, temperature=0.0)
         self.max_chars = max_chars
         self.last_metrics: dict[str, Any] = {}
 

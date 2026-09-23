@@ -1,0 +1,18 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHON_DOTENV_DISABLED=1
+WORKDIR /app
+RUN groupadd --gid 10001 novaops && useradd --uid 10001 --gid 10001 --create-home novaops
+COPY deploy/lesson14/requirements-agent.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+COPY model_client.py ./
+COPY company_brain/ ./company_brain/
+COPY maya/ ./maya/
+COPY webex/ ./webex/
+COPY vendor/ ./vendor/
+COPY service/ ./service/
+# Schemas are application contracts, not the evidence corpus.
+COPY novaops-enterprise-agent-dataset/workflows/vendor/schemas/ ./novaops-enterprise-agent-dataset/workflows/vendor/schemas/
+USER novaops
+EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=6s --start-period=25s --retries=9 CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready',timeout=5)"
+CMD ["uvicorn","service.api:app","--host","0.0.0.0","--port","8080"]

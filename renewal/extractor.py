@@ -9,7 +9,11 @@ from typing import Any, Protocol
 from jsonschema import Draft202012Validator, FormatChecker
 
 from company_brain.instrumentation import observe
-from model_client import BedrockModelClient
+from model_client import get_model
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from model_client import BedrockModelClient
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,7 +57,7 @@ class ProviderDecisionExtractor:
     """One-call extraction of an untrusted provider reply into a proposal."""
 
     def __init__(self, model: StructuredModel | None = None, schema_path: Path = SCHEMA_PATH) -> None:
-        self.model = model or BedrockModelClient()
+        self.model = model or get_model()
         self.schema = json.loads(schema_path.read_text(encoding="utf-8"))
         self.validator = Draft202012Validator(self.schema, format_checker=FormatChecker())
 
