@@ -10,7 +10,7 @@ This is the reviewer entry point for the repository, trace index, and durable-be
 | ------------------- | ------------------------------------------------ |
 | **Repository URL**  | `https://github.com/eddieiskl/novaops-company-brain` |
 | **Access**          | public |
-| **Commit reviewed** | `cf0dfa3931ec9cbaf04da30f17849516d2d0b05c` |
+| **Commit reviewed** | `245de30d1db594f9c7f679536a0195d8d1d5495d` |
 
 ## 2. Langfuse
 
